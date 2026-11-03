@@ -1,0 +1,60 @@
+CartCloser AI: Animation Implementation Report
+================================================
+
+SUMMARY
+The .pptx has native PowerPoint animations. They are real OOXML <p:timing> timelines (entrance, exit and emphasis effects), not static slides or embedded video. Each slide also has a native Fade transition.
+
+HOW IT WAS BUILT
+1. Layout: PptxGenJS (Node) builds the three 16:9 slides (13.333 x 7.5 in). Every element is an editable native shape, text box or PNG icon. Each element carries an objectName tag (e.g. "row2#11").
+2. Animation: a custom script writes a PowerPoint main-sequence timeline into each slide's XML (ppt/slides/slideN.xml). It targets shapes by their IDs and uses PowerPoint preset IDs:
+     Fade (10), Float In / Ascend (42), Zoom (53), Wipe (22), Fade Out exit (10),
+     Grow/Shrink pulse emphasis (6, auto-reverse).
+   PptxGenJS alone cannot create animations. The animations come from this XML step.
+3. Notes: the speaker script and click cues are in the PowerPoint notes of each slide.
+
+CLICK MAP (presenter-controlled; nothing loops or autoplays over the speaker)
+  Slide 1: Auto on entry (~2.3 s): glow, logo zoom, name, tagline line 1, tagline line 2
+           Click 1: cart node, path wipes across (2 s), chat node, check node + pulse
+           Click 2: vision card
+  Slide 2: Click 1: step 01
+           Click 2: connector, step 02, opt-in chip, AI greeting, shopper question,
+                    typing dots (fade in, then fade out), AI delivery reply
+           Click 3: COD question, AI reply with checkout link
+           Click 4: connector, step 03, green "Order placed" (zoom + pulse)
+           Click 5: merchant-controls pill, outcome line
+  Slide 3: Click 1: "At checkout today" label, three concern cards (staggered)
+           Click 2: lines wipe into the AI hub, hub zooms in, lines wipe out, three answer cards
+           Click 3: closing statement, three value chips (staggered)
+  Totals: 11 click/auto groups, 111 shape-level effects. Entrances run 0.25-0.8 s each;
+  the longest single click is about 4.2 s.
+
+VERIFICATION DONE
+  [PASS] OOXML schema, relationship and slide validation (validate.py): "All validations PASSED".
+  [PASS] python-pptx opens the deck: 3 slides, notes present on every slide.
+  [PASS] LibreOffice Impress imports the timeline as native animations. In the .odp conversion it maps
+         them to its own presets (fade-in, ascend, fade-in-and-zoom, wipe, fade-out, grow-and-shrink),
+         with on-click counts of 2 / 5 / 3 plus 1 after-previous auto group on slide 1. This matches the spec.
+  [PASS] The static PDF shows the complete final state of each slide. The typing indicator sits behind the
+         AI reply bubble, so it never appears in the final or static state.
+  [NOT DONE] Playback in Microsoft PowerPoint desktop. This environment is Linux, with no PowerPoint or
+         COM automation. The XML follows PowerPoint's own timing structure and preset IDs, but please do one
+         run-through in Slide Show mode before Day 2.
+         If any effect misbehaves, open Animation Pane, select it and re-pick the effect. The shape names
+         make each one easy to find.
+
+PREVIEW VIDEO (CartCloser_AI_IGNITE_XIII_Preview.mp4, ~54 s, 1280x720)
+  The video is a staged render, not a screen capture of PowerPoint. Each build stage was rendered as a
+  frame, then composited with eased cross-fades (fades), left-to-right / top-down masks (wipes) and
+  timed holds. It shows the order and pacing of the builds. It does not show the small upward drift of
+  Float In or the scale of Zoom/pulse, which only PowerPoint plays.
+
+KNOWN LIMITATIONS / NOTES
+  - Font: Inter (free, Google Fonts). If Inter is not installed on the presenting laptop, PowerPoint
+    uses a fallback font (usually Arial, which is slightly narrower, so the text still fits). For the
+    intended look, install Inter (https://fonts.google.com/specimen/Inter) or embed fonts via
+    File > Options > Save > "Embed fonts in the file" on Windows.
+  - Icons and glows are PNGs (vector source in source/assets.js). The logo is a clean re-creation of the
+    cart + chat-bubble + check idea from the business plan, because the plan's logo image was too small
+    (458 px) for stage use.
+  - No FPS logo is used. "IGNITE XIII" appears only as small text.
+  - To rebuild: cd source && npm install && node build.js final out.pptx
