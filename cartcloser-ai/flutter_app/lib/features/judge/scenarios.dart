@@ -57,10 +57,22 @@ class GuideCtx {
     return a.abandon(c);
   }
 
+  /// Set when a step had to change something visible (shown under the step title).
+  String? note;
+
   Future<Cart> ensureSent() async {
     final c = await ensureAbandoned(optIn: true);
     if (c.status == 'eligible' || c.status == 'scheduled') {
-      await ref.read(repositoryProvider).triggerRecovery(c.id);
+      final repo = ref.read(repositoryProvider);
+      final st = await repo.triggerRecovery(c.id);
+      if (st == 'scheduled' && s.settings['quiet_hours_enabled'] == true) {
+        // The send was deferred by quiet hours (correct behaviour). For a demo run at night,
+        // say so openly, switch quiet hours off for this demo session and send now.
+        await repo.patchSettings({'quiet_hours_enabled': false});
+        await repo.triggerRecovery(c.id);
+        note = 'Quiet hours (${s.settings['quiet_start_hour']}:00–${s.settings['quiet_end_hour']}:00 Pakistan time) deferred the send. '
+            'For this demo the guide turned quiet hours off; turn them back on in Merchant → Campaign.';
+      }
     }
     return s.cart(c.id)!;
   }
@@ -126,7 +138,7 @@ final scenarios = <Scenario>[
         focus: GuideFocus.merchant, run: (g) async {
       final c = await g.ensureSent();
       g.mnav.openCart(c.id);
-      return c.status == 'message_sent' || c.status == 'replied' ? null : 'Not sent: ${c.statusReason ?? c.status}';
+      return c.status == 'message_sent' || c.status == 'replied' ? g.note : 'Not sent: ${c.statusReason ?? c.status}';
     }),
     GuideStep('Ayesha receives one approved message', 'Simulated WhatsApp, clearly labelled. It includes how to opt out (STOP).', run: (g) async {
       final c = await g.ensureSent();

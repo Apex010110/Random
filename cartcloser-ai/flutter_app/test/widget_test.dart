@@ -84,6 +84,20 @@ void main() {
     await settle(t, 4500);
   });
 
+  testWidgets('guided demo at night: quiet hours are disclosed, then disabled for the demo', (t) async {
+    final (router, c) = await pumpApp(t, now: DateTime.utc(2026, 11, 4, 18)); // 23:00 PKT
+    router.go('/judge');
+    await settle(t);
+    for (var i = 0; i < 7; i++) {
+      await tap(t, find.byKey(const ValueKey('guide-run')), ms: 1200);
+    }
+    final snap = c.read(repositoryProvider).current!;
+    expect(snap.cartsFor('shp_ayesha').single.status, 'message_sent');
+    expect(snap.settings['quiet_hours_enabled'], false);
+    expect(find.textContaining('Quiet hours (22:00–9:00 Pakistan time) deferred the send'), findsOneWidget);
+    await settle(t, 4500);
+  });
+
   testWidgets('merchant settings: integrations stay "Not connected"', (t) async {
     final (router, c) = await pumpApp(t);
     router.go('/merchant');

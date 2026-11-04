@@ -55,7 +55,8 @@ class _JudgeScreenState extends ConsumerState<JudgeScreen> with SingleTickerProv
     _tabs.animateTo(step.focus == GuideFocus.shopper ? 0 : 1);
     String? note;
     try {
-      note = await step.run?.call(GuideCtx(ref, sc.personaId));
+      final ctx = GuideCtx(ref, sc.personaId);
+      note = await step.run?.call(ctx) ?? ctx.note;
     } on ApiException catch (e) {
       note = e.message;
     } catch (e) {

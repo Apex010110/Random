@@ -2,6 +2,10 @@
 
 Consent-based abandoned-checkout recovery for Pakistani e-commerce merchants. A shopper browses the fictional **UrbanThread PK** store, leaves checkout, gets **one** simulated WhatsApp-style message (only if they opted in), asks about delivery / COD / size in **English, Urdu or Roman Urdu**, and completes the order. The merchant sees everything live in a dashboard whose numbers are calculated from real demo events.
 
+**Live demo (GitHub Pages, runs fully in the browser):** <https://apex010110.github.io/Random/cartcloser/>
+· Guided judge demo: <https://apex010110.github.io/Random/cartcloser/#/judge>
+· Redeploy after changes: `./cartcloser-ai/scripts/deploy_pages.sh` (from the repo root)
+
 > **Honest labels.** The store, products, prices, shoppers and policies are fictional. Messaging is a built-in simulator (not the WhatsApp app). Shopify, WooCommerce and the WhatsApp Business Platform are **not connected**. No payment data is collected.
 
 | | |

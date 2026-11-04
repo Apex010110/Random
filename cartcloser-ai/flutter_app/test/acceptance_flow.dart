@@ -30,7 +30,7 @@ Future<void> tap(WidgetTester t, Finder f, {int ms = 700}) async {
 
 Bootstrap? _boot;
 
-Future<(GoRouter, ProviderContainer)> pumpApp(WidgetTester t) async {
+Future<(GoRouter, ProviderContainer)> pumpApp(WidgetTester t, {DateTime? now}) async {
   t.view.physicalSize = const Size(1600, 1000);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
@@ -39,7 +39,7 @@ Future<(GoRouter, ProviderContainer)> pumpApp(WidgetTester t) async {
   final router = buildRouter();
   final container = ProviderContainer(overrides: [
     bootstrapProvider.overrideWithValue(boot),
-    engineClockProvider.overrideWithValue(fixedNow),
+    engineClockProvider.overrideWithValue(now == null ? fixedNow : () => now),
     runSchedulerProvider.overrideWithValue(false),
   ]);
   addTearDown(container.dispose);
