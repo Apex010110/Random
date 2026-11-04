@@ -1,0 +1,104 @@
+{
+  "_note": "FICTIONAL demo data for IGNITE XIII. UrbanThread PK is not a real store. Prices, stock, delivery windows and COD rules are invented demo policies, not real shipping promises.",
+  "tenant": {
+    "id": "urbanthread-pk",
+    "name": "UrbanThread PK",
+    "currency": "PKR",
+    "is_demo": true
+  },
+  "other_tenant": {
+    "id": "other-demo-store",
+    "name": "Other Demo Store (isolation test)",
+    "currency": "PKR",
+    "is_demo": true
+  },
+  "settings": {
+    "campaign_enabled": true,
+    "delay_minutes": 20,
+    "demo_delay_seconds": 5,
+    "max_messages_per_cart": 1,
+    "quiet_hours_enabled": true,
+    "quiet_start_hour": 22,
+    "quiet_end_hour": 9,
+    "discount_enabled": true,
+    "discount_ceiling_pct": 5,
+    "attribution_window_days": 7,
+    "holdout_pct": 0,
+    "est_cost_per_message_pkr": 12,
+    "template_recovery": "Hi {first_name}, this is the {store} assistant. Your {item} is still in your cart. Any questions about size, delivery or cash on delivery? Just reply here. Reply STOP to opt out.",
+    "consent_version": "v1",
+    "consent_text": "Send me WhatsApp reminders and help about this checkout from UrbanThread PK. Max 1 reminder per cart. Reply STOP anytime to opt out."
+  },
+  "policy": {
+    "delivery_windows": {
+      "Karachi": [2, 3],
+      "Lahore": [3, 5],
+      "Islamabad": [3, 5],
+      "Rawalpindi": [3, 5],
+      "default": [4, 7]
+    },
+    "shipping_fees": {
+      "Karachi": 200,
+      "Lahore": 250,
+      "Islamabad": 250,
+      "Rawalpindi": 250,
+      "default": 300
+    },
+    "free_shipping_threshold_pkr": 6000,
+    "cod_cities": ["Karachi", "Lahore", "Islamabad", "Rawalpindi"],
+    "cod_max_order_pkr": 15000,
+    "exchange_policy": "Size exchange within 7 days of delivery if unworn with tags attached. One free exchange per order.",
+    "returns_policy": "Refunds only for faulty or wrong items, reported within 3 days of delivery."
+  },
+  "cities": ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar"],
+  "products": [
+    {"id": "p_linen_kurta", "name": "Linen Kurta - Sage", "category": "Kurtas", "price_pkr": 4490, "cod_eligible": true, "image_key": "kurta", "color_hex": "#8FB996",
+     "description": "Breathable pure-linen kurta with a band collar and side pockets.",
+     "fit_notes": "Regular fit. Chest: S 38in, M 40in, L 42in, XL 44in. Length 40in. If between sizes, choose the larger size.",
+     "variants": [["S", 3], ["M", 6], ["L", 0], ["XL", 2]]},
+    {"id": "p_kameez_navy", "name": "Cotton Kameez Shalwar - Navy", "category": "Kurtas", "price_pkr": 5990, "cod_eligible": true, "image_key": "kurta", "color_hex": "#2B3A67",
+     "description": "Classic two-piece cotton kameez shalwar for everyday wear.",
+     "fit_notes": "Relaxed fit. Chest: M 42in, L 44in, XL 46in.",
+     "variants": [["M", 4], ["L", 5], ["XL", 1]]},
+    {"id": "p_lawn_suit", "name": "Embroidered Lawn Suit (3-pc)", "category": "Women", "price_pkr": 7450, "cod_eligible": true, "image_key": "suit", "color_hex": "#E8A0BF",
+     "description": "Unstitched printed lawn shirt with embroidered neckline, dupatta and trouser.",
+     "fit_notes": "Unstitched fabric: shirt 3m, dupatta 2.5m, trouser 2.5m.",
+     "variants": [["Unstitched", 8]]},
+    {"id": "p_waistcoat", "name": "Khaddar Waistcoat - Charcoal", "category": "Men", "price_pkr": 3990, "cod_eligible": true, "image_key": "waistcoat", "color_hex": "#4A4E5A",
+     "description": "Warm khaddar waistcoat with a mandarin collar.",
+     "fit_notes": "Slim fit. Chest: S 37in, M 39in, L 41in.",
+     "variants": [["S", 2], ["M", 3], ["L", 4]]},
+    {"id": "p_dupatta", "name": "Block-Print Dupatta", "category": "Accessories", "price_pkr": 1850, "cod_eligible": true, "image_key": "dupatta", "color_hex": "#E07A5F",
+     "description": "Hand block-printed cotton dupatta.",
+     "fit_notes": "One size: 2.5m x 1.1m.",
+     "variants": [["One size", 0]]},
+    {"id": "p_chappal", "name": "Peshawari Chappal - Tan", "category": "Footwear", "price_pkr": 3250, "cod_eligible": true, "image_key": "chappal", "color_hex": "#B5835A",
+     "description": "Hand-stitched leather Peshawari chappal.",
+     "fit_notes": "True to size (UK sizing). Wide feet: go one size up.",
+     "variants": [["7", 2], ["8", 4], ["9", 3], ["10", 1], ["11", 0]]},
+    {"id": "p_crossbody", "name": "Leather Crossbody Bag", "category": "Accessories", "price_pkr": 4200, "cod_eligible": true, "image_key": "bag", "color_hex": "#6B4E3D",
+     "description": "Compact leather crossbody bag with an adjustable strap.",
+     "fit_notes": "One size: 22 x 16 x 7 cm.",
+     "variants": [["One size", 5]]},
+    {"id": "p_denim_shirt", "name": "Washed Denim Shirt", "category": "Men", "price_pkr": 3590, "cod_eligible": true, "image_key": "shirt", "color_hex": "#5B7DB1",
+     "description": "Soft washed denim shirt with two chest pockets.",
+     "fit_notes": "Regular fit. Chest: S 38in, M 40in, L 42in.",
+     "variants": [["S", 2], ["M", 5], ["L", 3]]},
+    {"id": "p_jhumka", "name": "Silver-Tone Jhumka Earrings", "category": "Accessories", "price_pkr": 1450, "cod_eligible": false, "image_key": "jewelry", "color_hex": "#C0C7D1",
+     "description": "Lightweight silver-tone jhumka earrings.",
+     "fit_notes": "One size. Hook fitting.",
+     "variants": [["One size", 10]]},
+    {"id": "p_sherwani", "name": "Silk Formal Sherwani", "category": "Men", "price_pkr": 24900, "cod_eligible": false, "image_key": "sherwani", "color_hex": "#D4B483",
+     "description": "Raw-silk sherwani with tilla embroidery for formal events.",
+     "fit_notes": "Tailored fit. Chest: M 40in, L 42in. Prepaid orders only.",
+     "variants": [["M", 1], ["L", 2]]}
+  ],
+  "discount_codes": [
+    {"code": "WELCOME5", "percent": 5, "single_use": false}
+  ],
+  "personas": [
+    {"id": "shp_ayesha", "first_name": "Ayesha", "phone_masked": "+92 3** *** 4821", "city": "Karachi", "age_band": "adult", "label": "Ayesha, adult, Karachi"},
+    {"id": "shp_bilal", "first_name": "Bilal", "phone_masked": "+92 3** *** 7710", "city": "Lahore", "age_band": "adult", "label": "Bilal, adult, Lahore"},
+    {"id": "shp_zara", "first_name": "Zara", "phone_masked": "+92 3** *** 3305", "city": "Islamabad", "age_band": "under_18", "label": "Zara, 16 (teen safeguard demo)"}
+  ]
+}

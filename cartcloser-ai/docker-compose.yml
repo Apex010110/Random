@@ -1,0 +1,23 @@
+# One-command local stack: PostgreSQL + FastAPI backend.   docker compose up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cartcloser
+      POSTGRES_USER: cartcloser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cartcloser-dev-only}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cartcloser -d cartcloser"]
+      interval: 3s
+      retries: 20
+  backend:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql+psycopg://cartcloser:${POSTGRES_PASSWORD:-cartcloser-dev-only}@db:5432/cartcloser
+    ports: ["8000:8000"]
+    depends_on:
+      db: { condition: service_healthy }
+volumes:
+  pgdata:

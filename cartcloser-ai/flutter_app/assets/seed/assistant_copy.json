@@ -1,0 +1,573 @@
+{
+  "_note": "Deterministic rule-based assistant copy. Shared by backend (Python) and offline Flutter engine (Dart). Placeholders in {braces} are filled only with facts computed from catalog/policy data.",
+  "roman_markers_strong": [
+    "hai",
+    "hain",
+    "kya",
+    "kia",
+    "mujhe",
+    "mera",
+    "meri",
+    "kab",
+    "kitne",
+    "kitna",
+    "chahiye",
+    "karo",
+    "karein",
+    "nahi",
+    "nahin",
+    "milega",
+    "milegi",
+    "hoga",
+    "hogi",
+    "aayega",
+    "ayega",
+    "bhejo",
+    "batao",
+    "bataen",
+    "yaar",
+    "bhai"
+  ],
+  "roman_markers_weak": [
+    "ka",
+    "ki",
+    "ke",
+    "ko",
+    "se",
+    "tak",
+    "aap",
+    "ap",
+    "ho",
+    "acha",
+    "theek",
+    "jaldi",
+    "par",
+    "pe"
+  ],
+  "injection_patterns": [
+    "ignore previous",
+    "ignore all",
+    "ignore the above",
+    "system prompt",
+    "you are now",
+    "developer mode",
+    "jailbreak",
+    "act as",
+    "disregard",
+    "reveal your",
+    "pretend"
+  ],
+  "intents": {
+    "opt_out": {
+      "words": [
+        "stop",
+        "unsubscribe",
+        "optout"
+      ],
+      "phrases": [
+        "opt out",
+        "band karo",
+        "mat bhejo",
+        "message mat",
+        "بند کریں",
+        "بند کرو",
+        "مت بھیجیں"
+      ]
+    },
+    "human": {
+      "words": [
+        "human",
+        "agent",
+        "representative",
+        "insaan",
+        "banda"
+      ],
+      "phrases": [
+        "real person",
+        "call me",
+        "talk to someone",
+        "speak to someone",
+        "kisi se baat",
+        "call karo",
+        "انسان",
+        "نمائندہ"
+      ]
+    },
+    "discount": {
+      "words": [
+        "discount",
+        "coupon",
+        "promo",
+        "cheaper",
+        "offer",
+        "deal",
+        "sasta",
+        "rayat",
+        "riayat"
+      ],
+      "phrases": [
+        "kam karo",
+        "kam kar",
+        "رعایت",
+        "ڈسکاؤنٹ",
+        "% off",
+        "percent off",
+        "money off"
+      ]
+    },
+    "cod": {
+      "words": [
+        "cod",
+        "cash",
+        "naqad"
+      ],
+      "phrases": [
+        "cash on delivery",
+        "pay on delivery",
+        "کیش",
+        "نقد"
+      ]
+    },
+    "shipping_fee": {
+      "words": [
+        "charges"
+      ],
+      "phrases": [
+        "shipping fee",
+        "shipping cost",
+        "delivery charge",
+        "delivery fee",
+        "shipping charge",
+        "free shipping",
+        "delivery kitne",
+        "چارجز",
+        "کرایہ"
+      ]
+    },
+    "delivery": {
+      "words": [
+        "deliver",
+        "delivery",
+        "delivered",
+        "arrive",
+        "arrives",
+        "reach",
+        "kab",
+        "pohanch",
+        "pohnch",
+        "pohanchega",
+        "aayega",
+        "ayega",
+        "days"
+      ],
+      "phrases": [
+        "how long",
+        "when will",
+        "پہنچ",
+        "ڈیلیوری",
+        "کب"
+      ]
+    },
+    "returns": {
+      "words": [
+        "return",
+        "returns",
+        "exchange",
+        "refund",
+        "swap",
+        "wapas",
+        "badal",
+        "badalna"
+      ],
+      "phrases": [
+        "واپس",
+        "تبدیل",
+        "ریفنڈ"
+      ]
+    },
+    "size": {
+      "words": [
+        "size",
+        "sizes",
+        "fit",
+        "fits",
+        "fitting",
+        "chest",
+        "length",
+        "measurements",
+        "naap",
+        "small",
+        "medium",
+        "large"
+      ],
+      "phrases": [
+        "سائز",
+        "ناپ"
+      ]
+    },
+    "stock": {
+      "words": [
+        "stock",
+        "available",
+        "availability",
+        "restock",
+        "milega",
+        "milegi"
+      ],
+      "phrases": [
+        "in stock",
+        "out of stock",
+        "اسٹاک",
+        "دستیاب"
+      ]
+    },
+    "checkout_link": {
+      "words": [
+        "link",
+        "checkout",
+        "buy",
+        "khareedna"
+      ],
+      "phrases": [
+        "place order",
+        "order now",
+        "complete order",
+        "link bhejo",
+        "order karna",
+        "لنک",
+        "آرڈر"
+      ]
+    },
+    "thanks": {
+      "words": [
+        "thanks",
+        "thank",
+        "shukriya",
+        "jazakallah",
+        "thx"
+      ],
+      "phrases": [
+        "شکریہ"
+      ]
+    },
+    "greeting": {
+      "words": [
+        "hi",
+        "hello",
+        "hey",
+        "salam",
+        "assalam",
+        "aoa",
+        "salaam"
+      ],
+      "phrases": [
+        "سلام"
+      ]
+    }
+  },
+  "intent_priority": [
+    "opt_out",
+    "human",
+    "discount",
+    "cod",
+    "shipping_fee",
+    "delivery",
+    "returns",
+    "size",
+    "stock",
+    "checkout_link",
+    "thanks",
+    "greeting"
+  ],
+  "weekdays": {
+    "en": [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday"
+    ],
+    "en_short": [
+      "mon",
+      "tue",
+      "wed",
+      "thu",
+      "fri",
+      "sat",
+      "sun"
+    ],
+    "roman": [
+      "peer",
+      "mangal",
+      "budh",
+      "jumeraat",
+      "jumma",
+      "hafta",
+      "itwar"
+    ],
+    "ur": [
+      "پیر",
+      "منگل",
+      "بدھ",
+      "جمعرات",
+      "جمعہ",
+      "ہفتہ",
+      "اتوار"
+    ]
+  },
+  "tomorrow_words": [
+    "tomorrow",
+    "kal",
+    "کل"
+  ],
+  "city_aliases": {
+    "karachi": "Karachi",
+    "khi": "Karachi",
+    "کراچی": "Karachi",
+    "lahore": "Lahore",
+    "لاہور": "Lahore",
+    "islamabad": "Islamabad",
+    "isb": "Islamabad",
+    "اسلام آباد": "Islamabad",
+    "rawalpindi": "Rawalpindi",
+    "pindi": "Rawalpindi",
+    "راولپنڈی": "Rawalpindi",
+    "faisalabad": "Faisalabad",
+    "multan": "Multan",
+    "peshawar": "Peshawar"
+  },
+  "size_aliases": {
+    "s": "S",
+    "small": "S",
+    "m": "M",
+    "medium": "M",
+    "l": "L",
+    "large": "L",
+    "xl": "XL"
+  },
+  "display": {
+    "en": {
+      "weekdays": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "weekdays_long": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+      ],
+      "months": [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec"
+      ]
+    },
+    "roman": {
+      "weekdays": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "weekdays_long": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+      ],
+      "months": [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec"
+      ]
+    },
+    "ur": {
+      "weekdays": [
+        "پیر",
+        "منگل",
+        "بدھ",
+        "جمعرات",
+        "جمعہ",
+        "ہفتہ",
+        "اتوار"
+      ],
+      "weekdays_long": [
+        "پیر",
+        "منگل",
+        "بدھ",
+        "جمعرات",
+        "جمعہ",
+        "ہفتہ",
+        "اتوار"
+      ],
+      "months": [
+        "جنوری",
+        "فروری",
+        "مارچ",
+        "اپریل",
+        "مئی",
+        "جون",
+        "جولائی",
+        "اگست",
+        "ستمبر",
+        "اکتوبر",
+        "نومبر",
+        "دسمبر"
+      ],
+      "cities": {
+        "Karachi": "کراچی",
+        "Lahore": "لاہور",
+        "Islamabad": "اسلام آباد",
+        "Rawalpindi": "راولپنڈی",
+        "Faisalabad": "فیصل آباد",
+        "Multan": "ملتان",
+        "Peshawar": "پشاور"
+      }
+    }
+  },
+  "replies": {
+    "en": {
+      "delivery_no_guarantee": "I can show the store's estimated delivery window, but I can't guarantee {target}.",
+      "delivery_window": "For {city}, the store's estimated delivery window is {start} to {end} ({min}-{max} business days if you order today).",
+      "delivery_default_city": "I don't have a city-specific estimate for {city}, so this is the store's general estimate.",
+      "delivery_before": "That whole window ends on or before {target}.",
+      "delivery_possible": "{target} is inside the window, so it's possible but not certain.",
+      "delivery_after": "{target} is earlier than the window, so it's unlikely.",
+      "cod_yes": "Yes, cash on delivery is available for this order in {city} (store limit PKR {max}). You can confirm COD on the checkout link.",
+      "cod_no_product": "Cash on delivery isn't available for {items} under the store's policy. You can choose online payment at checkout.",
+      "cod_no_city": "Under the store's current policy, cash on delivery isn't offered in {city}. Online payment is available.",
+      "cod_over_limit": "The store allows COD up to PKR {max}. This order is PKR {total}, so it needs online payment.",
+      "shipping_fee": "Shipping to {city} is PKR {fee}, and it's free on orders over PKR {threshold}. Your cart is PKR {subtotal}, so shipping is {current}.",
+      "shipping_free": "free",
+      "returns": "Store policy: {exchange} {returns}",
+      "size_info": "{product}: {fit} In stock now: {sizes}.",
+      "size_requested_ok": "{size} is in stock.",
+      "size_requested_out": "{size} is out of stock right now.",
+      "stock_ok": "{product} in {size} is in stock.",
+      "stock_sizes": "{product} is in stock in: {sizes}.",
+      "stock_out_size": "{product} in {size} is out of stock right now. In stock: {sizes}.",
+      "stock_out_all": "{product} is out of stock right now, and I can't promise a restock date. A similar in-stock option is {alt} (PKR {alt_price}). Or reply \"human\" and the team will help.",
+      "stock_out_no_alt": "{product} is out of stock right now, and I can't promise a restock date. Reply \"human\" and the team will help.",
+      "discount_issued": "I can offer {pct}% off, the most the store allows for this order. Your single-use code {code} is applied on your checkout link.",
+      "discount_capped": "I can't offer {req}%. The store's limit is {pct}%.",
+      "discount_existing": "Your code {code} ({pct}% off) is already applied on your checkout link.",
+      "discount_none": "Sorry, the store isn't offering a discount on this order.",
+      "checkout_link": "Here's your secure checkout link. Your cart is saved.",
+      "human": "I'm connecting you with the {store} team. A person will reply here.",
+      "unknown": "I'm not sure about that, so I've asked the {store} team to help. They'll reply here.",
+      "injection": "I can only help with this order: size, delivery, COD, returns and checkout.",
+      "opt_out": "You're unsubscribed. {store} won't send you more WhatsApp messages about this cart.",
+      "greeting": "Hi {first_name}! Ask me about size, delivery, COD or returns, or say \"link\" for your checkout link.",
+      "thanks": "You're welcome! Your checkout link stays active.",
+      "no_cart": "I couldn't find an active cart for this chat.",
+      "link_label": "Complete checkout"
+    },
+    "roman": {
+      "delivery_no_guarantee": "Main store ka andaazan delivery waqt bata sakta hoon, lekin {target} ki guarantee nahi de sakta.",
+      "delivery_window": "{city} ke liye store ka andaaza {start} se {end} tak hai ({min}-{max} working din, agar aaj order karein).",
+      "delivery_default_city": "{city} ka alag andaaza mere paas nahi, is liye yeh store ka general andaaza hai.",
+      "delivery_before": "Poora andaaza {target} tak ya us se pehle khatam hota hai.",
+      "delivery_possible": "{target} andaaze ke andar hai, yani mumkin hai lekin pakka nahi.",
+      "delivery_after": "{target} andaaze se pehle hai, is liye mushkil hai.",
+      "cod_yes": "Ji haan, {city} mein is order par cash on delivery available hai (store limit PKR {max}). Checkout link par COD confirm kar sakte hain.",
+      "cod_no_product": "Store ki policy ke mutabiq {items} par cash on delivery nahi hai. Checkout par online payment choose kar sakte hain.",
+      "cod_no_city": "Store ki maujooda policy mein {city} mein cash on delivery nahi hai. Online payment available hai.",
+      "cod_over_limit": "Store COD PKR {max} tak deta hai. Yeh order PKR {total} ka hai, is liye online payment chahiye.",
+      "shipping_fee": "{city} ki shipping PKR {fee} hai, aur PKR {threshold} se zyada ke order par free hai. Aap ka cart PKR {subtotal} ka hai, is liye shipping {current} hai.",
+      "shipping_free": "free",
+      "returns": "Store ki policy: {exchange} {returns}",
+      "size_info": "{product}: {fit} Abhi stock mein: {sizes}.",
+      "size_requested_ok": "{size} stock mein hai.",
+      "size_requested_out": "{size} abhi stock mein nahi hai.",
+      "stock_ok": "{product} {size} mein stock mein hai.",
+      "stock_sizes": "{product} in sizes mein stock mein hai: {sizes}.",
+      "stock_out_size": "{product} {size} mein abhi stock mein nahi. Stock mein: {sizes}.",
+      "stock_out_all": "{product} abhi stock mein nahi, aur main restock ki date ka wada nahi kar sakta. Milta julta option {alt} (PKR {alt_price}) hai. Ya \"human\" likhein, team madad karegi.",
+      "stock_out_no_alt": "{product} abhi stock mein nahi, aur main restock ki date ka wada nahi kar sakta. \"human\" likhein, team madad karegi.",
+      "discount_issued": "Main {pct}% discount de sakta hoon, is order par store ki maximum limit yehi hai. Aap ka single-use code {code} checkout link par lag gaya hai.",
+      "discount_capped": "{req}% mumkin nahi. Store ki limit {pct}% hai.",
+      "discount_existing": "Aap ka code {code} ({pct}% off) pehle se checkout link par laga hua hai.",
+      "discount_none": "Maazrat, store is order par discount nahi de raha.",
+      "checkout_link": "Yeh raha aap ka secure checkout link. Aap ka cart saved hai.",
+      "human": "Main aap ko {store} ki team se mila raha hoon. Koi insaan yahin jawab dega.",
+      "unknown": "Mujhe is ka pakka jawab nahi pata, is liye {store} ki team ko bata diya hai. Woh yahin jawab denge.",
+      "injection": "Main sirf is order ke baare mein madad kar sakta hoon: size, delivery, COD, returns aur checkout.",
+      "opt_out": "Aap unsubscribe ho gaye hain. {store} is cart ke baare mein mazeed WhatsApp messages nahi bhejega.",
+      "greeting": "Assalam o Alaikum {first_name}! Size, delivery, COD ya returns ke baare mein poochein, ya \"link\" likhein.",
+      "thanks": "Koi baat nahi! Aap ka checkout link active hai.",
+      "no_cart": "Is chat ke liye koi active cart nahi mila.",
+      "link_label": "Checkout mukammal karein"
+    },
+    "ur": {
+      "delivery_no_guarantee": "میں اسٹور کا اندازاً ڈیلیوری وقت بتا سکتا ہوں، لیکن {target} کی گارنٹی نہیں دے سکتا۔",
+      "delivery_window": "{city} کے لیے اسٹور کا اندازہ {start} سے {end} تک ہے (آج آرڈر کرنے پر {min} سے {max} کاروباری دن)۔",
+      "delivery_default_city": "{city} کا الگ اندازہ میرے پاس نہیں، اس لیے یہ اسٹور کا عمومی اندازہ ہے۔",
+      "delivery_before": "پورا اندازہ {target} تک یا اس سے پہلے ختم ہو جاتا ہے۔",
+      "delivery_possible": "{target} اندازے کے اندر ہے، یعنی ممکن ہے لیکن یقینی نہیں۔",
+      "delivery_after": "{target} اندازے سے پہلے ہے، اس لیے مشکل ہے۔",
+      "cod_yes": "جی ہاں، {city} میں اس آرڈر پر کیش آن ڈیلیوری دستیاب ہے (اسٹور کی حد PKR {max})۔ چیک آؤٹ لنک پر COD کی تصدیق کر سکتے ہیں۔",
+      "cod_no_product": "اسٹور کی پالیسی کے مطابق {items} پر کیش آن ڈیلیوری دستیاب نہیں۔ چیک آؤٹ پر آن لائن ادائیگی منتخب کر سکتے ہیں۔",
+      "cod_no_city": "اسٹور کی موجودہ پالیسی میں {city} میں کیش آن ڈیلیوری دستیاب نہیں۔ آن لائن ادائیگی دستیاب ہے۔",
+      "cod_over_limit": "اسٹور PKR {max} تک COD دیتا ہے۔ یہ آرڈر PKR {total} کا ہے، اس لیے آن لائن ادائیگی درکار ہے۔",
+      "shipping_fee": "{city} کی شپنگ PKR {fee} ہے، اور PKR {threshold} سے زیادہ کے آرڈر پر مفت ہے۔ آپ کا کارٹ PKR {subtotal} کا ہے، اس لیے شپنگ {current} ہے۔",
+      "shipping_free": "مفت",
+      "returns": "اسٹور کی پالیسی: {exchange} {returns}",
+      "size_info": "{product}: {fit} ابھی اسٹاک میں: {sizes}۔",
+      "size_requested_ok": "{size} اسٹاک میں ہے۔",
+      "size_requested_out": "{size} ابھی اسٹاک میں نہیں ہے۔",
+      "stock_ok": "{product} سائز {size} میں اسٹاک میں ہے۔",
+      "stock_sizes": "{product} ان سائزز میں اسٹاک میں ہے: {sizes}۔",
+      "stock_out_size": "{product} سائز {size} میں ابھی اسٹاک میں نہیں۔ اسٹاک میں: {sizes}۔",
+      "stock_out_all": "{product} ابھی اسٹاک میں نہیں، اور میں دوبارہ آنے کی تاریخ کا وعدہ نہیں کر سکتا۔ ملتا جلتا آپشن {alt} (PKR {alt_price}) ہے۔ یا \"human\" لکھیں، ٹیم مدد کرے گی۔",
+      "stock_out_no_alt": "{product} ابھی اسٹاک میں نہیں، اور میں دوبارہ آنے کی تاریخ کا وعدہ نہیں کر سکتا۔ \"human\" لکھیں، ٹیم مدد کرے گی۔",
+      "discount_issued": "میں {pct}% رعایت دے سکتا ہوں، اس آرڈر پر اسٹور کی زیادہ سے زیادہ حد یہی ہے۔ آپ کا ایک بار استعمال ہونے والا کوڈ {code} چیک آؤٹ لنک پر لگ گیا ہے۔",
+      "discount_capped": "{req}% ممکن نہیں۔ اسٹور کی حد {pct}% ہے۔",
+      "discount_existing": "آپ کا کوڈ {code} ({pct}% رعایت) پہلے سے چیک آؤٹ لنک پر لگا ہوا ہے۔",
+      "discount_none": "معذرت، اسٹور اس آرڈر پر رعایت نہیں دے رہا۔",
+      "checkout_link": "یہ رہا آپ کا محفوظ چیک آؤٹ لنک۔ آپ کا کارٹ محفوظ ہے۔",
+      "human": "میں آپ کو {store} کی ٹیم سے ملا رہا ہوں۔ کوئی نمائندہ یہیں جواب دے گا۔",
+      "unknown": "مجھے اس کا یقینی جواب معلوم نہیں، اس لیے {store} کی ٹیم کو بتا دیا ہے۔ وہ یہیں جواب دیں گے۔",
+      "injection": "میں صرف اس آرڈر کے بارے میں مدد کر سکتا ہوں: سائز، ڈیلیوری، COD، واپسی اور چیک آؤٹ۔",
+      "opt_out": "آپ ان سبسکرائب ہو گئے ہیں۔ {store} اس کارٹ کے بارے میں مزید واٹس ایپ پیغامات نہیں بھیجے گا۔",
+      "greeting": "السلام علیکم {first_name}! سائز، ڈیلیوری، COD یا واپسی کے بارے میں پوچھیں، یا \"لنک\" لکھیں۔",
+      "thanks": "کوئی بات نہیں! آپ کا چیک آؤٹ لنک فعال ہے۔",
+      "no_cart": "اس چیٹ کے لیے کوئی فعال کارٹ نہیں ملا۔",
+      "link_label": "چیک آؤٹ مکمل کریں"
+    }
+  }
+}

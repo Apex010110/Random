@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+backend/*.db
+backend/cartcloser_demo.db
+dist/

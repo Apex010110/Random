@@ -1,0 +1,57 @@
+name: CartCloser AI CI
+
+on:
+  push:
+    paths: ["cartcloser-ai/**", ".github/workflows/cartcloser-ci.yml"]
+  pull_request:
+    paths: ["cartcloser-ai/**", ".github/workflows/cartcloser-ci.yml"]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: cartcloser-ai/backend } }
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: ci, POSTGRES_DB: cartcloser }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check app tests scripts
+      - name: Tests (SQLite)
+        run: python -m pytest -q
+      - name: Tests (PostgreSQL)
+        env: { TEST_DATABASE_URL: "postgresql+psycopg://postgres:ci@localhost:5432/cartcloser" }
+        run: python -m pytest -q
+      - name: Migrations apply cleanly and match models
+        env: { DATABASE_URL: "postgresql+psycopg://postgres:ci@localhost:5432/cartcloser" }
+        run: |
+          python -m app.cli migrate
+          alembic check
+      - name: Parity fixtures are up to date
+        run: |
+          python scripts/make_parity_fixtures.py
+          git diff --exit-code ../seed/parity_fixtures.json
+
+  flutter:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: cartcloser-ai/flutter_app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: "3.47.9" }
+      - run: flutter pub get
+      - name: Seed assets match /seed
+        run: |
+          diff assets/seed/demo_seed.json ../seed/demo_seed.json
+          diff assets/seed/assistant_copy.json ../seed/assistant_copy.json
+          diff test/fixtures/parity_fixtures.json ../seed/parity_fixtures.json
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --release --no-web-resources-cdn
