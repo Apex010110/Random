@@ -35,7 +35,12 @@ python3 -m http.server 8080 --directory build/web    # open http://localhost:808
 ```
 **Android**: `flutter build apk --release` → `build/app/outputs/flutter-apk/app-release.apk` (install with `adb install`).
 
-**iOS** (macOS + Xcode 16+ required): `cd flutter_app && flutter pub get && cd ios && pod install && cd .. && flutter run -d "iPhone 16"`. For a device: open `ios/Runner.xcworkspace`, set your signing team under *Signing & Capabilities*, then `flutter build ipa`. Not built here (no macOS).
+**iOS** (macOS + Xcode 16+ required). One command installs on your USB-connected iPhone, signed with your Apple team (free Apple ID works for 7-day installs; paid Developer Program for longer):
+```bash
+TEAM_ID=<your 10-char Team ID> BUNDLE_ID=com.yourname.cartcloser ./cartcloser-ai/scripts/ios_install_mac.sh
+```
+First time on the phone: enable *Settings → Privacy & Security → Developer Mode*, and after install trust the profile in *Settings → General → VPN & Device Management*.
+CI also builds iOS on a GitHub-hosted Mac (`.github/workflows/cartcloser-ios.yml`): unsigned by default; add the `IOS_*` repo secrets listed in that file to get a signed `.ipa`, plus `ASC_*` secrets for TestFlight upload.
 
 Then: **Welcome → Guided judge demo** and press **Do this step** repeatedly (scenario A, 13 steps). Pick scenarios **A–H** from the dropdown. The ↻ icon resets demo data.
 

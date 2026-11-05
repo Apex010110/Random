@@ -36,26 +36,49 @@ def configure(text: str, bundle: str, team: str, profile: str, identity: str) ->
     return text, count
 
 
+def configure_automatic(text: str, bundle: str, team: str) -> tuple[str, int]:
+    """Xcode-managed (automatic) signing with the owner's team: used for local USB installs."""
+    pattern = re.compile(rf"(\n(\s*)PRODUCT_BUNDLE_IDENTIFIER = {re.escape(DEFAULT_BUNDLE)};)")
+    count = 0
+
+    def repl(m: re.Match) -> str:
+        nonlocal count
+        count += 1
+        ind = m.group(2)
+        return f"\n{ind}PRODUCT_BUNDLE_IDENTIFIER = {bundle};\n{ind}CODE_SIGN_STYLE = Automatic;\n{ind}DEVELOPMENT_TEAM = {team};"
+
+    text = pattern.sub(repl, text)
+    return text.replace(f"{DEFAULT_BUNDLE}.RunnerTests", f"{bundle}.RunnerTests"), count
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("pbxproj")
     ap.add_argument("--bundle-id", required=True)
     ap.add_argument("--team", required=True)
-    ap.add_argument("--profile", required=True)
+    ap.add_argument("--profile", help="provisioning profile name (manual signing)")
     ap.add_argument("--identity", default="Apple Development")
+    ap.add_argument("--automatic", action="store_true", help="Xcode-managed signing (no profile needed)")
     a = ap.parse_args()
+    if not a.automatic and not a.profile:
+        print("--profile is required unless --automatic", file=sys.stderr)
+        return 2
     if not re.fullmatch(r"[A-Za-z0-9.-]+", a.bundle_id) or not re.fullmatch(r"[A-Z0-9]{10}", a.team):
         print("invalid bundle id or team id", file=sys.stderr)
         return 2
     with open(a.pbxproj, encoding="utf-8") as f:
         text = f.read()
-    text, n = configure(text, a.bundle_id, a.team, a.profile, a.identity)
+    if a.automatic:
+        text, n = configure_automatic(text, a.bundle_id, a.team)
+    else:
+        text, n = configure(text, a.bundle_id, a.team, a.profile, a.identity)
     if n != 3:  # Debug, Release, Profile
         print(f"expected 3 Runner build configurations, found {n}", file=sys.stderr)
         return 1
     with open(a.pbxproj, "w", encoding="utf-8") as f:
         f.write(text)
-    print(f"Configured manual signing for {a.bundle_id} (team {a.team}, profile '{a.profile}') in {n} configurations")
+    mode = "automatic" if a.automatic else f"manual, profile '{a.profile}'"
+    print(f"Configured {mode} signing for {a.bundle_id} (team {a.team}) in {n} configurations")
     return 0
 
 
