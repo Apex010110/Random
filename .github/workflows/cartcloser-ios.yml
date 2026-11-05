@@ -1,0 +1,115 @@
+name: CartCloser iOS build
+
+# Builds the Flutter app for iOS on a GitHub-hosted Mac.
+#  * No signing secrets  -> unsigned build (proves it compiles; artifact can't be installed as-is).
+#  * Signing secrets set -> signed .ipa with YOUR Apple developer certificate + provisioning profile.
+#  * App Store Connect API key set + export method app-store -> also uploaded to TestFlight.
+# Secrets (Settings -> Secrets and variables -> Actions), all optional:
+#   IOS_P12_BASE64          base64 of your exported signing certificate (.p12)
+#   IOS_P12_PASSWORD        password of that .p12
+#   IOS_PROFILE_BASE64      base64 of the .mobileprovision for the bundle id below
+#   IOS_TEAM_ID             10-character Apple Team ID
+#   IOS_BUNDLE_ID           bundle id registered in your account (e.g. com.yourname.cartcloser)
+#   IOS_EXPORT_METHOD       development | ad-hoc | app-store   (default development)
+#   ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8_BASE64   App Store Connect API key (TestFlight upload only)
+
+on:
+  push:
+    paths:
+      - "cartcloser-ai/flutter_app/**"
+      - "cartcloser-ai/scripts/ios_signing.py"
+      - ".github/workflows/cartcloser-ios.yml"
+  workflow_dispatch:
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    defaults: { run: { working-directory: cartcloser-ai/flutter_app } }
+    env:
+      IOS_P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
+      IOS_P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+      IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+      IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+      IOS_BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+      IOS_EXPORT_METHOD: ${{ secrets.IOS_EXPORT_METHOD }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: "3.47.9", cache: true }
+      - run: flutter --version && xcodebuild -version
+      - run: flutter pub get
+
+      - name: Unsigned build (no signing secrets configured)
+        if: env.IOS_P12_BASE64 == ''
+        run: |
+          flutter build ios --release --no-codesign
+          mkdir -p out/Payload && cp -R build/ios/iphoneos/Runner.app out/Payload/
+          (cd out && zip -qry CartCloser_AI_unsigned.ipa Payload && rm -rf Payload)
+          echo "::notice::Unsigned build OK. Add the IOS_* secrets to produce an installable, signed .ipa."
+
+      - name: Install certificate and provisioning profile
+        if: env.IOS_P12_BASE64 != ''
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"; KC_PASS="$(uuidgen)"
+          echo "$IOS_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KC_PASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KC_PASS" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KC_PASS" "$KEYCHAIN" >/dev/null
+          security list-keychain -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          echo "$IOS_PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' "$RUNNER_TEMP/profile.plist")
+          NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' "$RUNNER_TEMP/profile.plist")
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$RUNNER_TEMP/profile.mobileprovision" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
+          echo "PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | head -1 | sed -E 's/.*"(.*)".*/\1/')
+          echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "Using profile '$NAME' and identity '$IDENTITY'"
+
+      - name: Signed build (.ipa)
+        if: env.IOS_P12_BASE64 != ''
+        run: |
+          METHOD="${IOS_EXPORT_METHOD:-development}"
+          case "$SIGN_IDENTITY" in *Distribution*) IDENT="Apple Distribution";; *) IDENT="Apple Development";; esac
+          python3 ../scripts/ios_signing.py ios/Runner.xcodeproj/project.pbxproj \
+            --bundle-id "$IOS_BUNDLE_ID" --team "$IOS_TEAM_ID" --profile "$PROFILE_NAME" --identity "$IDENT"
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>$METHOD</string>
+            <key>teamID</key><string>$IOS_TEAM_ID</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key><dict><key>$IOS_BUNDLE_ID</key><string>$PROFILE_NAME</string></dict>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          flutter build ipa --release --build-number=${{ github.run_number }} --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+          mkdir -p out && cp build/ios/ipa/*.ipa out/CartCloser_AI.ipa
+          echo "METHOD=$METHOD" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cartcloser-ios-${{ github.run_number }}
+          path: cartcloser-ai/flutter_app/out/*.ipa
+          retention-days: 14
+
+      - name: Upload to TestFlight
+        if: env.IOS_P12_BASE64 != '' && env.ASC_KEY_ID != '' && env.METHOD == 'app-store'
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_"$ASC_KEY_ID".p8
+          xcrun altool --upload-app -f out/CartCloser_AI.ipa -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+
+      - name: Clean up signing material
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP"/cert.p12 "$RUNNER_TEMP"/profile.* ~/.appstoreconnect/private_keys/*.p8
