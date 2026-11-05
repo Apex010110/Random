@@ -21,6 +21,11 @@ on:
       - ".github/workflows/cartcloser-ios.yml"
   workflow_dispatch:
 
+# macOS minutes are expensive: cancel an older build when a newer commit arrives.
+concurrency:
+  group: cartcloser-ios-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ios:
     runs-on: macos-15
