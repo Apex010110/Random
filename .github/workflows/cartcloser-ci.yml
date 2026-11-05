@@ -26,14 +26,14 @@ jobs:
         run: ruff check app tests scripts
       - name: Tests (SQLite)
         run: python -m pytest -q
-      - name: Tests (PostgreSQL)
-        env: { TEST_DATABASE_URL: "postgresql+psycopg://postgres:ci@localhost:5432/cartcloser" }
-        run: python -m pytest -q
-      - name: Migrations apply cleanly and match models
+      - name: Migrations apply cleanly to an empty database and match models
         env: { DATABASE_URL: "postgresql+psycopg://postgres:ci@localhost:5432/cartcloser" }
         run: |
           python -m app.cli migrate
           alembic check
+      - name: Tests (PostgreSQL)
+        env: { TEST_DATABASE_URL: "postgresql+psycopg://postgres:ci@localhost:5432/cartcloser" }
+        run: python -m pytest -q
       - name: Parity fixtures are up to date
         run: |
           python scripts/make_parity_fixtures.py
