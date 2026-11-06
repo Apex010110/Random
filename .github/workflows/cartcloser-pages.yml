@@ -19,9 +19,11 @@ jobs:
         with: { channel: stable, flutter-version: "3.47.9" }
       - run: flutter pub get
       - name: Build web (offline demo mode, no backend required)
-        run: flutter build web --release --no-web-resources-cdn --base-href "/Random/"
-      - name: Deploy to gh-pages
+        run: flutter build web --release --no-web-resources-cdn --base-href "/Random/cartcloser/"
+      - name: Deploy to gh-pages (cartcloser/ subpath only — keep_files preserves the rest of the branch)
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: cartcloser-ai/flutter_app/build/web
+          destination_dir: cartcloser
+          keep_files: true
