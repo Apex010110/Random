@@ -27,7 +27,9 @@
     "est_cost_per_message_pkr": 12,
     "template_recovery": "Hi {first_name}, this is the {store} assistant. Your {item} is still in your cart. Any questions about size, delivery or cash on delivery? Just reply here. Reply STOP to opt out.",
     "consent_version": "v1",
-    "consent_text": "Send me WhatsApp reminders and help about this checkout from UrbanThread PK. Max 1 reminder per cart. Reply STOP anytime to opt out."
+    "consent_text": "Send me WhatsApp reminders and help about this checkout from UrbanThread PK. Max 1 reminder per cart. Reply STOP anytime to opt out.",
+    "cod_predispatch_confirmation_required": true,
+    "cod_rejection_policy": "hold"
   },
   "policy": {
     "delivery_windows": {
