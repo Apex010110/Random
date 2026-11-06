@@ -1,0 +1,27 @@
+name: Deploy CartCloser AI web demo to Pages
+
+on:
+  push:
+    branches: ["claude/random-3d-website-LQqOh", "main"]
+    paths: ["cartcloser-ai/flutter_app/**", ".github/workflows/cartcloser-pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: cartcloser-ai/flutter_app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: "3.47.9" }
+      - run: flutter pub get
+      - name: Build web (offline demo mode, no backend required)
+        run: flutter build web --release --no-web-resources-cdn --base-href "/Random/"
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: cartcloser-ai/flutter_app/build/web
