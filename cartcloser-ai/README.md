@@ -13,7 +13,7 @@ Consent-based abandoned-checkout recovery for Pakistani e-commerce merchants. A 
 | **Flutter app** | `flutter_app/`: Android, iOS, Web. Riverpod, go_router, Dio, fl_chart, Material 3. Runs fully **offline** by default |
 | **Backend** | `backend/`: FastAPI, Pydantic 2, SQLAlchemy 2, Alembic, SQLite (demo) / PostgreSQL. SSE + polling live updates |
 | **AI** | Deterministic grounded assistant (both engines) + optional server-side Claude rephraser (`AI_PROVIDER=anthropic`) |
-| **Docs** | [architecture](docs/architecture.md) · [API](docs/api.md) ([openapi.json](docs/openapi.json)) · [demo script](docs/demo-script.md) · [security](docs/security.md) · [test report](docs/test-report.md) · [screenshots](docs/screenshots/) |
+| **Docs** | [architecture](docs/architecture.md) · [API](docs/api.md) ([openapi.json](docs/openapi.json)) · [demo script](docs/demo-script.md) · [security](docs/security.md) · [test report](docs/test-report.md) · [Green Logistics](docs/green_logistics.md) · [screenshots](docs/screenshots/) |
 
 ## Screenshots
 | Guided judge demo (recovered) | Urdu delivery answer | Merchant analytics |
@@ -84,6 +84,18 @@ Exact outputs: [docs/test-report.md](docs/test-report.md).
 - Guided judge demo: split view (phone + dashboard), scenarios A–H, next/back/reset, progress.
 
 **Simulated**: WhatsApp delivery (in-app simulator), online payment ("demo", nothing collected), product images (placeholders), delivery estimates (fictional business-day windows).
+
+### Green Logistics extension (new — see [docs/green_logistics.md](docs/green_logistics.md))
+
+A failed-delivery-prevention module layered on top of the cart-recovery product above, **not a
+replacement for it**. COD orders go through a pre-dispatch confirmation gate before a courier is
+ever sent; a guarded fulfillment state machine (`pending_confirmation → hold/ready_to_dispatch →
+dispatched → delivered/failed_attempt/returned/cancelled`) backs a 7-tab **Merchant → Orders**
+screen, and a **Merchant → Green Logistics** dashboard shows observed confirmation/failed/return
+rates plus illustrative, assumption-driven avoided-trip and CO2e estimates that show **no number at
+all** until a merchant explicitly sets the assumption behind it. Size clarification reuses the
+existing grounded assistant unchanged. **Proposed enhancement, not a validated environmental
+result** — see the dashboard's own banner and the guardrails in the doc above.
 
 **Not implemented / limitations**
 - Shopify / WooCommerce: webhook endpoints verify HMAC and de-duplicate, but payload → cart mapping, OAuth install and app-store listing are **not built**.

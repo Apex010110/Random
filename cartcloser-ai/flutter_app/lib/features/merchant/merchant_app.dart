@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme.dart';
 import '../../core/providers.dart';
 import '../../shared/widgets.dart';
+import 'green_logistics.dart';
 import 'merchant_admin.dart';
 import 'merchant_screens.dart';
 
@@ -12,6 +13,8 @@ const _tabs = [
   (MerchantTab.analytics, Icons.insights_outlined, Icons.insights, 'Analytics'),
   (MerchantTab.carts, Icons.shopping_cart_outlined, Icons.shopping_cart, 'Carts'),
   (MerchantTab.inbox, Icons.forum_outlined, Icons.forum, 'Inbox'),
+  (MerchantTab.orders, Icons.local_shipping_outlined, Icons.local_shipping, 'Orders'),
+  (MerchantTab.green, Icons.eco_outlined, Icons.eco, 'Green Logistics'),
   (MerchantTab.catalog, Icons.inventory_2_outlined, Icons.inventory_2, 'Catalog'),
   (MerchantTab.campaign, Icons.campaign_outlined, Icons.campaign, 'Campaign'),
   (MerchantTab.integrations, Icons.hub_outlined, Icons.hub, 'Integrations'),
@@ -28,6 +31,8 @@ class MerchantApp extends ConsumerWidget {
         MerchantTab.analytics => const AnalyticsScreen(),
         MerchantTab.carts => const CartsScreen(),
         MerchantTab.inbox => const MerchantInboxScreen(),
+        MerchantTab.orders => const GreenOrdersScreen(),
+        MerchantTab.green => const GreenDashboardScreen(),
         MerchantTab.catalog => const CatalogScreen(),
         MerchantTab.campaign => const CampaignScreen(),
         MerchantTab.integrations => const IntegrationsScreen(),

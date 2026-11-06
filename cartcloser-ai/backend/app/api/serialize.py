@@ -70,4 +70,8 @@ def order(db: Session, o: Order) -> dict:
     return {"id": o.id, "cart_id": o.cart_id, "status": o.status, "payment_method": o.payment_method,
             "cod_confirmed": o.cod_confirmed, "city": o.city, "subtotal_pkr": o.subtotal_pkr, "discount_pkr": o.discount_pkr,
             "shipping_pkr": o.shipping_pkr, "total_pkr": o.total_pkr, "discount_code": o.discount_code,
-            "via_recovery_link": o.via_recovery_link, "lines": o.lines, "created_at": as_utc(o.created_at), "attributed": attributed}
+            "via_recovery_link": o.via_recovery_link, "lines": o.lines, "created_at": as_utc(o.created_at), "attributed": attributed,
+            "fulfillment_status": o.fulfillment_status, "delivery_zone": o.delivery_zone, "address_redacted": o.address_redacted,
+            "size_question_resolved": o.size_question_resolved, "cod_predispatch_confirmed": o.cod_predispatch_confirmed,
+            "had_failed_attempt": o.had_failed_attempt, "ever_delivered": o.ever_delivered, "was_held": o.was_held,
+            "delivery_consolidation_selected": o.delivery_consolidation_selected, "scenario_id": o.scenario_id}

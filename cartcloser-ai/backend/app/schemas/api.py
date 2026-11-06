@@ -193,6 +193,44 @@ class OrderOut(BaseModel):
     lines: list[dict]
     created_at: datetime
     attributed: bool = False
+    # Green Logistics fulfillment lifecycle
+    fulfillment_status: str
+    delivery_zone: str | None
+    address_redacted: str | None
+    size_question_resolved: bool
+    cod_predispatch_confirmed: bool
+    had_failed_attempt: bool
+    ever_delivered: bool
+    was_held: bool
+    delivery_consolidation_selected: bool
+    scenario_id: str | None
+
+
+class ConfirmCodIn(BaseModel):
+    confirmed: bool
+    delivery_zone_ok: bool = True
+    availability_ok: bool = True
+
+
+class CorrectAddressIn(BaseModel):
+    address_redacted: str = Field(min_length=1, max_length=120)
+    delivery_zone: str = Field(min_length=1, max_length=64)
+
+
+class HoldIn(BaseModel):
+    reason: str = Field(default="", max_length=120)
+
+
+class ReasonIn(BaseModel):
+    reason: str = Field(default="", max_length=120)
+
+
+class AssumptionsPatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    assumed_failure_probability_without_intervention: float | None = Field(default=None, ge=0, le=1)
+    assumed_km_per_avoided_attempt: float | None = Field(default=None, ge=0, le=500)
+    assumed_kgco2e_per_km: float | None = Field(default=None, ge=0, le=10)
+    assumed_packaging_units_per_repack_event: float | None = Field(default=None, ge=0, le=20)
 
 
 class SettingsPatch(BaseModel):
@@ -261,3 +299,4 @@ class Metrics(BaseModel):
     incremental_lift: dict[str, Any]
     funnel: list[dict]
     definitions: dict[str, str]
+    green: dict[str, Any] | None = None

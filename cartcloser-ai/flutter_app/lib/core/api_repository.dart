@@ -244,4 +244,59 @@ class ApiRepository implements CartCloserRepository {
 
   @override
   Future<void> reset() => _call(() => _dio.post('/demo/reset'), (_) {});
+
+  @override
+  Future<List<Order>> merchantOrders({String? fulfillmentStatus}) => _call(
+      () => _dio.get('/merchant/orders', queryParameters: {'fulfillment_status': ?fulfillmentStatus, 'limit': 500}, options: _m),
+      (d) => [for (final o in d['items'] as List) Order.fromJson(o)]);
+
+  @override
+  Future<Order> confirmCod(String orderId, bool confirmed, {bool deliveryZoneOk = true, bool availabilityOk = true}) => _call(
+      () => _dio.post('/orders/$orderId/confirm-cod',
+          data: {'confirmed': confirmed, 'delivery_zone_ok': deliveryZoneOk, 'availability_ok': availabilityOk}, options: _m),
+      (d) => Order.fromJson(d));
+
+  @override
+  Future<Order> correctAddress(String orderId, String addressRedacted, String deliveryZone) => _call(
+      () => _dio.post('/orders/$orderId/correct-address',
+          data: {'address_redacted': addressRedacted, 'delivery_zone': deliveryZone}, options: _m),
+      (d) => Order.fromJson(d));
+
+  @override
+  Future<Order> holdOrder(String orderId, {String reason = ''}) =>
+      _call(() => _dio.post('/orders/$orderId/hold', data: {'reason': reason}, options: _m), (d) => Order.fromJson(d));
+
+  @override
+  Future<Order> releaseOrder(String orderId) => _call(() => _dio.post('/orders/$orderId/release', options: _m), (d) => Order.fromJson(d));
+
+  @override
+  Future<Order> dispatchOrder(String orderId) => _call(() => _dio.post('/orders/$orderId/dispatch', options: _m), (d) => Order.fromJson(d));
+
+  @override
+  Future<Order> retryDispatchOrder(String orderId) =>
+      _call(() => _dio.post('/orders/$orderId/retry-dispatch', options: _m), (d) => Order.fromJson(d));
+
+  @override
+  Future<Order> markDelivered(String orderId) => _call(() => _dio.post('/orders/$orderId/delivered', options: _m), (d) => Order.fromJson(d));
+
+  @override
+  Future<Order> markFailedAttempt(String orderId, {String reason = ''}) =>
+      _call(() => _dio.post('/orders/$orderId/failed-attempt', data: {'reason': reason}, options: _m), (d) => Order.fromJson(d));
+
+  @override
+  Future<Order> markReturned(String orderId, {String reason = ''}) =>
+      _call(() => _dio.post('/orders/$orderId/returned', data: {'reason': reason}, options: _m), (d) => Order.fromJson(d));
+
+  @override
+  Future<Order> cancelOrder(String orderId, {String reason = ''}) =>
+      _call(() => _dio.post('/orders/$orderId/cancel', data: {'reason': reason}, options: _m), (d) => Order.fromJson(d));
+
+  @override
+  Future<Map<String, dynamic>> patchAssumptions(Map<String, dynamic> patch) =>
+      _call(() => _dio.post('/merchant/assumptions', data: patch, options: _m), (d) => Map<String, dynamic>.from(d));
+
+  @override
+  Future<List<Map<String, dynamic>>> merchantEvents({String? orderId}) => _call(
+      () => _dio.get('/merchant/events', queryParameters: {'order_id': ?orderId}, options: _m),
+      (d) => [for (final e in d['items'] as List) Map<String, dynamic>.from(e)]);
 }

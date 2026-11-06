@@ -148,4 +148,47 @@ class LocalRepository implements CartCloserRepository {
 
   @override
   Future<void> reset() => _run(engine.reset);
+
+  @override
+  Future<List<Order>> merchantOrders({String? fulfillmentStatus}) =>
+      _run(() => [for (final o in engine.merchantOrders(fulfillmentStatus: fulfillmentStatus)) Order.fromJson(o)]);
+
+  @override
+  Future<Order> confirmCod(String orderId, bool confirmed, {bool deliveryZoneOk = true, bool availabilityOk = true}) =>
+      _run(() => Order.fromJson(engine.confirmCod(orderId, confirmed, deliveryZoneOk: deliveryZoneOk, availabilityOk: availabilityOk)));
+
+  @override
+  Future<Order> correctAddress(String orderId, String addressRedacted, String deliveryZone) =>
+      _run(() => Order.fromJson(engine.correctAddress(orderId, addressRedacted, deliveryZone)));
+
+  @override
+  Future<Order> holdOrder(String orderId, {String reason = ''}) => _run(() => Order.fromJson(engine.holdOrder(orderId, reason)));
+
+  @override
+  Future<Order> releaseOrder(String orderId) => _run(() => Order.fromJson(engine.releaseOrder(orderId)));
+
+  @override
+  Future<Order> dispatchOrder(String orderId) => _run(() => Order.fromJson(engine.dispatchOrder(orderId)));
+
+  @override
+  Future<Order> retryDispatchOrder(String orderId) => _run(() => Order.fromJson(engine.retryDispatchOrder(orderId)));
+
+  @override
+  Future<Order> markDelivered(String orderId) => _run(() => Order.fromJson(engine.markDelivered(orderId)));
+
+  @override
+  Future<Order> markFailedAttempt(String orderId, {String reason = ''}) =>
+      _run(() => Order.fromJson(engine.markFailedAttempt(orderId, reason)));
+
+  @override
+  Future<Order> markReturned(String orderId, {String reason = ''}) => _run(() => Order.fromJson(engine.markReturned(orderId, reason)));
+
+  @override
+  Future<Order> cancelOrder(String orderId, {String reason = ''}) => _run(() => Order.fromJson(engine.cancelOrder(orderId, reason)));
+
+  @override
+  Future<Map<String, dynamic>> patchAssumptions(Map<String, dynamic> patch) => _run(() => engine.patchAssumptions(patch));
+
+  @override
+  Future<List<Map<String, dynamic>>> merchantEvents({String? orderId}) => _run(() => engine.merchantEvents(orderId: orderId));
 }

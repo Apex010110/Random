@@ -25,6 +25,7 @@ from app.models.entities import (
     Order,
     RecoveryAttempt,
 )
+from app.services import fulfillment
 from app.services.commerce import tenant_of
 from app.services.support import Clock, as_utc
 
@@ -39,9 +40,85 @@ DEFINITIONS = {
     "incremental_lift": "Treatment minus holdout recovery rate. Needs a randomized holdout with at least 30 carts per arm",
 }
 
+GREEN_DEFINITIONS = {
+    "cod_confirmation_rate": "Confirmed COD orders / COD orders requiring pre-dispatch confirmation",
+    "failed_delivery_rate": "Orders with a failed first attempt / dispatched orders",
+    "return_rate": "Returned orders / orders ever delivered",
+    "consolidation_rate": "Not implemented in this demo (P1): eligible orders selecting consolidation / eligible orders offered it",
+    "estimated_avoided_attempts": "eligible_orders_held_or_cancelled x assumed_failure_probability_without_intervention (illustrative; no estimate until an assumption is set)",
+    "illustrative_co2e_kg": "estimated_avoided_attempts x assumed_km_per_avoided_attempt x assumed_kgco2e_per_km (assumption-driven, not a measured saving)",
+    "illustrative_packaging_units": "verified_avoided_repack_events x assumed_packaging_units_per_repack_event (0 until a real avoided-repack signal exists; never inferred from unshipped orders)",
+}
+
 
 def _rate(n: int, d: int) -> dict:
     return {"numerator": n, "denominator": d, "value": (n / d) if d else None}
+
+
+def compute_green(db: Session, tenant_id: str, orders: list[Order]) -> dict:
+    """Green Logistics metrics. Every count comes from Order/fulfillment state actually reached;
+    every estimate is gated behind an explicit, editable, merchant-set assumption (defaults to None)."""
+    scen = fulfillment.default_scenario(db, tenant_id)
+    assumptions = dict(scen.assumptions) if scen else {}
+
+    cod_requiring_confirmation = [o for o in orders if o.payment_method == "cod"]
+    confirmed = [o for o in cod_requiring_confirmation if o.cod_predispatch_confirmed]
+    dispatched_ever = [o for o in orders if o.fulfillment_status in
+                       (fulfillment.DISPATCHED, fulfillment.DELIVERED, fulfillment.FAILED, fulfillment.RETURNED)]
+    failed = [o for o in orders if o.had_failed_attempt]
+    ever_delivered = [o for o in orders if o.ever_delivered]
+    returned = [o for o in orders if o.fulfillment_status == fulfillment.RETURNED]
+    held_or_cancelled = [o for o in orders if o.was_held or o.fulfillment_status == fulfillment.CANCELLED]
+    consolidated = [o for o in orders if o.delivery_consolidation_selected]
+    size_resolved = [o for o in orders if o.size_question_resolved]
+
+    p = assumptions.get("assumed_failure_probability_without_intervention")
+    estimated_avoided_attempts = None
+    sensitivity = None
+    if p is not None:
+        base = len(held_or_cancelled) * p
+        estimated_avoided_attempts = base
+        sensitivity = {"low": len(held_or_cancelled) * max(0.0, p * 0.5), "high": len(held_or_cancelled) * min(1.0, p * 1.5)}
+
+    km = assumptions.get("assumed_km_per_avoided_attempt")
+    co2_per_km = assumptions.get("assumed_kgco2e_per_km")
+    illustrative_co2e_kg = estimated_avoided_attempts * km * co2_per_km if (estimated_avoided_attempts is not None and km and co2_per_km) else None
+
+    # No "avoided repack" signal is produced anywhere in this demo yet, so this is honestly 0,
+    # never inferred from orders that simply weren't shipped.
+    verified_avoided_repack_events = 0
+    pack_units = assumptions.get("assumed_packaging_units_per_repack_event")
+    illustrative_packaging_units = verified_avoided_repack_events * pack_units if pack_units else None
+
+    return {
+        "scenario_id": scen.id if scen else None,
+        "assumptions": assumptions,
+        "counts": {
+            "cod_orders": len(cod_requiring_confirmation),
+            "cod_confirmed": len(confirmed),
+            "dispatched": len(dispatched_ever),
+            "failed_attempt": len(failed),
+            "ever_delivered": len(ever_delivered),
+            "returned": len(returned),
+            "held_or_cancelled": len(held_or_cancelled),
+            "size_questions_resolved": len(size_resolved),
+            "consolidated": len(consolidated),
+        },
+        "rates": {
+            "cod_confirmation_rate": _rate(len(confirmed), len(cod_requiring_confirmation)),
+            "failed_delivery_rate": _rate(len(failed), len(dispatched_ever)),
+            "return_rate": _rate(len(returned), len(ever_delivered)),
+            "consolidation_rate": {"numerator": 0, "denominator": 0, "value": None, "label": "Not implemented (P1)"},
+        },
+        "estimates": {
+            "estimated_avoided_attempts": estimated_avoided_attempts,
+            "estimated_avoided_attempts_sensitivity": sensitivity,
+            "illustrative_co2e_kg": illustrative_co2e_kg,
+            "illustrative_packaging_units": illustrative_packaging_units,
+        },
+        "definitions": GREEN_DEFINITIONS,
+        "banner": "Simulation only — no verified environmental impact or pilot outcomes.",
+    }
 
 
 def compute(db: Session, tenant_id: str, days: int | None = None) -> dict:
@@ -136,6 +213,7 @@ def compute(db: Session, tenant_id: str, days: int | None = None) -> dict:
             {"stage": "recovered", "label": "Recovered (order placed)", "count": len(recovered)},
         ],
         "definitions": DEFINITIONS,
+        "green": compute_green(db, tenant_id, all_orders),
         "recent_events": [
             {"type": e.type, "cart_id": e.cart_id, "at": as_utc(e.created_at).isoformat(), "detail": e.detail}
             for e in db.scalars(select(AuditEvent).where(AuditEvent.tenant_id == tenant_id)

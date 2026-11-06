@@ -45,6 +45,21 @@ abstract class CartCloserRepository {
   Future<Map<String, dynamic>> deleteShopperData(String shopperId);
   Future<Metrics> metrics({int? days});
 
+  // green logistics (merchant demo controls)
+  Future<List<Order>> merchantOrders({String? fulfillmentStatus});
+  Future<Order> confirmCod(String orderId, bool confirmed, {bool deliveryZoneOk = true, bool availabilityOk = true});
+  Future<Order> correctAddress(String orderId, String addressRedacted, String deliveryZone);
+  Future<Order> holdOrder(String orderId, {String reason = ''});
+  Future<Order> releaseOrder(String orderId);
+  Future<Order> dispatchOrder(String orderId);
+  Future<Order> retryDispatchOrder(String orderId);
+  Future<Order> markDelivered(String orderId);
+  Future<Order> markFailedAttempt(String orderId, {String reason = ''});
+  Future<Order> markReturned(String orderId, {String reason = ''});
+  Future<Order> cancelOrder(String orderId, {String reason = ''});
+  Future<Map<String, dynamic>> patchAssumptions(Map<String, dynamic> patch);
+  Future<List<Map<String, dynamic>>> merchantEvents({String? orderId});
+
   // demo
   Future<void> reset();
 }

@@ -75,10 +75,12 @@ def redact(value):
 
 
 def audit(db: Session, tenant_id: str, type_: str, cart_id: str | None = None, detail: dict | None = None,
-          idempotency_key: str | None = None) -> bool:
-    """Record an audit event. Returns False if the idempotency key was already seen (duplicate)."""
-    ev = AuditEvent(tenant_id=tenant_id, cart_id=cart_id, type=type_, detail=redact(detail or {}),
-                    idempotency_key=idempotency_key, created_at=Clock.now())
+          idempotency_key: str | None = None, order_id: str | None = None, scenario_id: str | None = None,
+          source: str = "simulated") -> bool:
+    """Record an audit event (also the Green Logistics order-event log). Returns False if the
+    idempotency key was already seen (duplicate)."""
+    ev = AuditEvent(tenant_id=tenant_id, cart_id=cart_id, order_id=order_id, scenario_id=scenario_id, source=source,
+                    type=type_, detail=redact(detail or {}), idempotency_key=idempotency_key, created_at=Clock.now())
     if idempotency_key:
         with db.begin_nested():
             try:

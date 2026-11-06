@@ -195,8 +195,15 @@ class Order {
   final String? discountCode;
   final List<Map<String, dynamic>> lines;
   final DateTime createdAt;
+  // Green Logistics fulfillment lifecycle
+  final String fulfillmentStatus;
+  final String? deliveryZone, addressRedacted, scenarioId;
+  final bool sizeQuestionResolved, codPredispatchConfirmed, hadFailedAttempt, everDelivered, wasHeld, deliveryConsolidationSelected;
   const Order(this.id, this.cartId, this.status, this.paymentMethod, this.city, this.codConfirmed, this.viaRecoveryLink, this.attributed,
-      this.subtotal, this.discount, this.shipping, this.total, this.discountCode, this.lines, this.createdAt);
+      this.subtotal, this.discount, this.shipping, this.total, this.discountCode, this.lines, this.createdAt,
+      {this.fulfillmentStatus = 'ready_to_dispatch', this.deliveryZone, this.addressRedacted, this.scenarioId,
+      this.sizeQuestionResolved = false, this.codPredispatchConfirmed = false, this.hadFailedAttempt = false, this.everDelivered = false,
+      this.wasHeld = false, this.deliveryConsolidationSelected = false});
   factory Order.fromJson(Map j) => Order(
       j['id'],
       j['cart_id'],
@@ -212,8 +219,30 @@ class Order {
       _i(j['total_pkr']),
       j['discount_code'],
       [for (final l in (j['lines'] as List)) Map<String, dynamic>.from(l)],
-      _dt(j['created_at'])!);
+      _dt(j['created_at'])!,
+      fulfillmentStatus: j['fulfillment_status'] ?? 'ready_to_dispatch',
+      deliveryZone: j['delivery_zone'],
+      addressRedacted: j['address_redacted'],
+      scenarioId: j['scenario_id'],
+      sizeQuestionResolved: j['size_question_resolved'] == true,
+      codPredispatchConfirmed: j['cod_predispatch_confirmed'] == true,
+      hadFailedAttempt: j['had_failed_attempt'] == true,
+      everDelivered: j['ever_delivered'] == true,
+      wasHeld: j['was_held'] == true,
+      deliveryConsolidationSelected: j['delivery_consolidation_selected'] == true);
 }
+
+const fulfillmentTabs = ['pending_confirmation', 'ready_to_dispatch', 'hold', 'cancelled', 'delivered', 'returned', 'failed_attempt'];
+const fulfillmentLabels = {
+  'pending_confirmation': 'Needs confirmation',
+  'ready_to_dispatch': 'Ready to dispatch',
+  'hold': 'Hold',
+  'cancelled': 'Cancelled',
+  'delivered': 'Delivered',
+  'returned': 'Returned',
+  'failed_attempt': 'Failed attempt',
+  'dispatched': 'Dispatched',
+};
 
 class Rate {
   final int numerator, denominator;
@@ -231,8 +260,9 @@ class Metrics {
   final List<Map<String, dynamic>> funnel, recentEvents;
   final Map<String, String> definitions;
   final bool isDemoData;
+  final Map<String, dynamic> green;
   const Metrics(this.counts, this.rates, this.money, this.lift, this.blockedReasons, this.funnel, this.recentEvents, this.definitions,
-      this.isDemoData);
+      this.isDemoData, this.green);
   factory Metrics.fromJson(Map j) => Metrics(
         {for (final e in (j['counts'] as Map).entries) e.key as String: _i(e.value)},
         {for (final e in (j['rates'] as Map).entries) e.key as String: Rate.fromJson(e.value)},
@@ -243,6 +273,29 @@ class Metrics {
         [for (final f in ((j['recent_events'] ?? const []) as List)) Map<String, dynamic>.from(f)],
         Map<String, String>.from(j['definitions'] ?? {}),
         j['is_demo_data'] == true,
+        Map<String, dynamic>.from(j['green'] ?? {}),
+      );
+  int c(String k) => counts[k] ?? 0;
+}
+
+/// Typed read of Metrics.green, so dashboard widgets don't sprinkle raw map casts.
+class GreenMetrics {
+  final String? scenarioId;
+  final Map<String, dynamic> assumptions;
+  final Map<String, int> counts;
+  final Map<String, Rate> rates;
+  final Map<String, dynamic> estimates;
+  final Map<String, String> definitions;
+  final String banner;
+  const GreenMetrics(this.scenarioId, this.assumptions, this.counts, this.rates, this.estimates, this.definitions, this.banner);
+  factory GreenMetrics.fromJson(Map<String, dynamic> j) => GreenMetrics(
+        j['scenario_id'],
+        Map<String, dynamic>.from(j['assumptions'] ?? {}),
+        {for (final e in ((j['counts'] ?? {}) as Map).entries) e.key as String: _i(e.value)},
+        {for (final e in ((j['rates'] ?? {}) as Map).entries) e.key as String: Rate.fromJson(e.value)},
+        Map<String, dynamic>.from(j['estimates'] ?? {}),
+        Map<String, String>.from(j['definitions'] ?? {}),
+        j['banner'] ?? 'Simulation only — no verified environmental impact or pilot outcomes.',
       );
   int c(String k) => counts[k] ?? 0;
 }
@@ -299,6 +352,7 @@ class Snapshot {
   });
   Product? product(String id) => products.where((p) => p.id == id).firstOrNull;
   Cart? cart(String id) => carts.where((c) => c.id == id).firstOrNull;
+  GreenMetrics get green => GreenMetrics.fromJson(metrics.green);
   List<Cart> cartsFor(String shopperId) => [for (final c in carts) if (c.shopperId == shopperId) c];
 
   /// The shopper's current open cart (most recent not completed).

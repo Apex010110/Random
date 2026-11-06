@@ -229,6 +229,20 @@ class Discount(TimestampMixin, Base):
     issued_by: Mapped[str] = mapped_column(String(16), default="merchant")  # merchant | ai
 
 
+class Scenario(TimestampMixin, Base):
+    """A named set of merchant-editable counterfactual assumptions (see docs/green_logistics.md).
+
+    One 'live' scenario per tenant is created at seed time; its assumptions default to None
+    (no numeric estimate shown) until a merchant explicitly sets them via POST /merchant/assumptions.
+    """
+
+    __tablename__ = "scenarios"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    assumptions: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
 class Order(TimestampMixin, Base):
     __tablename__ = "orders"
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: new_id("ord"))
@@ -247,6 +261,21 @@ class Order(TimestampMixin, Base):
     via_recovery_link: Mapped[bool] = mapped_column(Boolean, default=False)
     lines: Mapped[list] = mapped_column(JSON, default=list)
 
+    # ---- Green Logistics fulfillment lifecycle (see app/services/fulfillment.py) ----
+    # pending_confirmation | hold | ready_to_dispatch | dispatched | delivered | failed_attempt | returned | cancelled
+    fulfillment_status: Mapped[str] = mapped_column(String(32), default="ready_to_dispatch", index=True)
+    delivery_zone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    address_redacted: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    scenario_id: Mapped[str | None] = mapped_column(ForeignKey("scenarios.id"), nullable=True, index=True)
+    # Tracked independently of status (which can move on); never used to infer a return was "prevented".
+    size_question_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Set exactly once by the corresponding fulfillment transition; never inferred after the fact.
+    cod_predispatch_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    had_failed_attempt: Mapped[bool] = mapped_column(Boolean, default=False)
+    ever_delivered: Mapped[bool] = mapped_column(Boolean, default=False)
+    was_held: Mapped[bool] = mapped_column(Boolean, default=False)
+    delivery_consolidation_selected: Mapped[bool] = mapped_column(Boolean, default=False)  # P1: always False for now
+
 
 class AttributionEvent(Base):
     __tablename__ = "attribution_events"
@@ -261,10 +290,15 @@ class AttributionEvent(Base):
 
 
 class AuditEvent(Base):
+    """Also serves as the Green Logistics OrderEvent log (order_id/scenario_id/source added for it)."""
+
     __tablename__ = "audit_events"
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: new_id("aud"))
     tenant_id: Mapped[str] = mapped_column(String(64), index=True)
     cart_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    order_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    scenario_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source: Mapped[str] = mapped_column(String(16), default="simulated")  # simulated | actual
     type: Mapped[str] = mapped_column(String(64), index=True)
     detail: Mapped[dict] = mapped_column(JSON, default=dict)  # PII-redacted
     idempotency_key: Mapped[str | None] = mapped_column(String(160), unique=True, nullable=True)

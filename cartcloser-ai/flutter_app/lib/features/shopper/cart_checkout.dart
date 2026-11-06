@@ -486,6 +486,21 @@ class ReceiptScreen extends ConsumerWidget {
                 ]),
               ),
             ),
+            if (o.fulfillmentStatus == 'pending_confirmation') ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: CC.amber.withValues(alpha: .1), borderRadius: BorderRadius.circular(12), border: Border.all(color: CC.amber.withValues(alpha: .4))),
+                child: const Row(children: [
+                  Icon(Icons.hourglass_top, color: CC.amber, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text("We'll confirm this cash-on-delivery order with you before it ships, to avoid a failed delivery.",
+                        style: TextStyle(color: CC.amber, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ),
+            ],
             const SizedBox(height: 16),
             FilledButton(onPressed: () => ref.read(shopperNavProvider.notifier).root(const StorePage()), child: const Text('Continue shopping')),
           ]),

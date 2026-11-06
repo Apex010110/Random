@@ -177,23 +177,27 @@ class ShopperNav extends Notifier<List<ShopperPage>> {
 final shopperNavProvider = NotifierProvider<ShopperNav, List<ShopperPage>>(ShopperNav.new);
 
 // ---------------------------------------------------------------- merchant navigation
-enum MerchantTab { overview, analytics, carts, inbox, catalog, campaign, integrations, settings }
+enum MerchantTab { overview, analytics, carts, inbox, orders, green, catalog, campaign, integrations, settings }
 
 @immutable
 class MerchantNavState {
   final MerchantTab tab;
-  final String? cartId;
+  final String? cartId, orderId;
   final int? days; // date filter: null = all time
-  const MerchantNavState({this.tab = MerchantTab.overview, this.cartId, this.days});
+  const MerchantNavState({this.tab = MerchantTab.overview, this.cartId, this.orderId, this.days});
 }
 
 class MerchantNav extends Notifier<MerchantNavState> {
   @override
   MerchantNavState build() => const MerchantNavState();
-  void tab(MerchantTab t) => state = MerchantNavState(tab: t, cartId: t == MerchantTab.carts || t == MerchantTab.inbox ? state.cartId : null, days: state.days);
+  void tab(MerchantTab t) => state = MerchantNavState(
+      tab: t, cartId: t == MerchantTab.carts || t == MerchantTab.inbox ? state.cartId : null,
+      orderId: t == MerchantTab.orders ? state.orderId : null, days: state.days);
   void openCart(String id, {MerchantTab tab = MerchantTab.carts}) => state = MerchantNavState(tab: tab, cartId: id, days: state.days);
   void closeCart() => state = MerchantNavState(tab: state.tab, days: state.days);
-  void days(int? d) => state = MerchantNavState(tab: state.tab, cartId: state.cartId, days: d);
+  void openOrder(String id) => state = MerchantNavState(tab: MerchantTab.orders, orderId: id, days: state.days);
+  void closeOrder() => state = MerchantNavState(tab: state.tab, days: state.days);
+  void days(int? d) => state = MerchantNavState(tab: state.tab, cartId: state.cartId, orderId: state.orderId, days: d);
 }
 
 final merchantNavProvider = NotifierProvider<MerchantNav, MerchantNavState>(MerchantNav.new);

@@ -34,6 +34,7 @@ from app.models.entities import (
     StorePolicy,
     Tenant,
 )
+from app.services import fulfillment
 from app.services.support import (
     ChangeFeed,
     Clock,
@@ -609,6 +610,9 @@ def place_order(db: Session, cart: Cart, payment_method: str, cod_confirmed: boo
     else:
         cart.status = "ordered"
     audit(db, cart.tenant_id, "order_placed", cart.id, {"order": order.id, "total": order.total_pkr, "attributed": cart.status == "recovered"})
+    scen = fulfillment.default_scenario(db, cart.tenant_id)
+    fulfillment.init_fulfillment(db, tenant_of(db, cart.tenant_id), order, scen.id if scen else None,
+                                 active_consent(db, cart.tenant_id, cart.shopper_id) is not None)
     _commit(db)
     return order, True
 

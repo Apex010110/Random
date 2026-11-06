@@ -15,6 +15,7 @@ from app.models.entities import (
     MerchantUser,
     Product,
     ProductVariant,
+    Scenario,
     Shopper,
     StorePolicy,
     Tenant,
@@ -37,6 +38,12 @@ def seed(db: Session) -> None:
                             (SEED["other_tenant"], s.demo_other_tenant_token, "owner@other.example")):
         db.add(Tenant(id=t["id"], name=t["name"], currency=t["currency"], is_demo=True, settings=dict(SEED["settings"])))
         db.flush()
+        db.add(Scenario(id=f"{t['id']}:live", tenant_id=t["id"], name="Live demo", assumptions={
+            "assumed_failure_probability_without_intervention": None,
+            "assumed_km_per_avoided_attempt": None,
+            "assumed_kgco2e_per_km": None,
+            "assumed_packaging_units_per_repack_event": None,
+        }))
         db.add(MerchantUser(tenant_id=t["id"], email=email, api_token=token))
         db.add(StorePolicy(tenant_id=t["id"], **SEED["policy"]))
         for provider, status, detail in (

@@ -24,6 +24,7 @@ from app.models.entities import (
 )
 from app.schemas import api as S
 from app.services import commerce as svc
+from app.services import fulfillment as ful
 from app.services import metrics as metrics_svc
 from app.services.seed import reset_and_seed
 from app.services.support import ChangeFeed, DomainError, verify_recovery_token
@@ -177,6 +178,114 @@ def get_order(order_id: str, who: ShopperCtx = Depends(shopper), db: Session = D
     return ser.order(db, o)
 
 
+# ------------------------------------------------------------------ green logistics (merchant demo controls)
+def _merchant_order(db: Session, m: MerchantCtx, order_id: str) -> Order:
+    o = db.get(Order, order_id)
+    if not o or o.tenant_id != m.tenant_id:
+        raise DomainError(404, "order_not_found", "Order not found")
+    return o
+
+
+@router.post("/orders/{order_id}/confirm-cod", response_model=S.OrderOut, responses=ERR, tags=["fulfillment"])
+def confirm_cod(order_id: str, body: S.ConfirmCodIn, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    o = _merchant_order(db, m, order_id)
+    ful.confirm_cod(db, svc.tenant_of(db, m.tenant_id), o, body.confirmed, body.delivery_zone_ok, body.availability_ok)
+    svc._commit(db)
+    return ser.order(db, o)
+
+
+@router.post("/orders/{order_id}/correct-address", response_model=S.OrderOut, responses=ERR, tags=["fulfillment"])
+def correct_address(order_id: str, body: S.CorrectAddressIn, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    o = _merchant_order(db, m, order_id)
+    ful.correct_address(db, o, body.address_redacted, body.delivery_zone)
+    svc._commit(db)
+    return ser.order(db, o)
+
+
+@router.post("/orders/{order_id}/hold", response_model=S.OrderOut, responses=ERR, tags=["fulfillment"])
+def hold_order(order_id: str, body: S.HoldIn, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    o = _merchant_order(db, m, order_id)
+    ful.hold(db, o, body.reason)
+    svc._commit(db)
+    return ser.order(db, o)
+
+
+@router.post("/orders/{order_id}/release", response_model=S.OrderOut, responses=ERR, tags=["fulfillment"])
+def release_order(order_id: str, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    o = _merchant_order(db, m, order_id)
+    ful.release(db, o)
+    svc._commit(db)
+    return ser.order(db, o)
+
+
+@router.post("/orders/{order_id}/dispatch", response_model=S.OrderOut, responses=ERR, tags=["fulfillment"])
+def dispatch_order(order_id: str, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    o = _merchant_order(db, m, order_id)
+    ful.dispatch(db, o)
+    svc._commit(db)
+    return ser.order(db, o)
+
+
+@router.post("/orders/{order_id}/retry-dispatch", response_model=S.OrderOut, responses=ERR, tags=["fulfillment"])
+def retry_dispatch_order(order_id: str, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    o = _merchant_order(db, m, order_id)
+    ful.retry_dispatch(db, o)
+    svc._commit(db)
+    return ser.order(db, o)
+
+
+@router.post("/orders/{order_id}/delivered", response_model=S.OrderOut, responses=ERR, tags=["fulfillment"])
+def mark_delivered(order_id: str, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    o = _merchant_order(db, m, order_id)
+    ful.mark_delivered(db, o)
+    svc._commit(db)
+    return ser.order(db, o)
+
+
+@router.post("/orders/{order_id}/failed-attempt", response_model=S.OrderOut, responses=ERR, tags=["fulfillment"])
+def mark_failed_attempt(order_id: str, body: S.ReasonIn, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    o = _merchant_order(db, m, order_id)
+    ful.mark_failed_attempt(db, o, body.reason)
+    svc._commit(db)
+    return ser.order(db, o)
+
+
+@router.post("/orders/{order_id}/returned", response_model=S.OrderOut, responses=ERR, tags=["fulfillment"])
+def mark_returned(order_id: str, body: S.ReasonIn, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    o = _merchant_order(db, m, order_id)
+    ful.mark_returned(db, o, body.reason)
+    svc._commit(db)
+    return ser.order(db, o)
+
+
+@router.post("/orders/{order_id}/cancel", response_model=S.OrderOut, responses=ERR, tags=["fulfillment"])
+def cancel_order(order_id: str, body: S.ReasonIn, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    o = _merchant_order(db, m, order_id)
+    ful.cancel(db, o, body.reason)
+    svc._commit(db)
+    return ser.order(db, o)
+
+
+@router.get("/merchant/events", responses=ERR, tags=["merchant"])
+def merchant_events(order_id: str | None = None, limit: int = Query(default=100, ge=1, le=500),
+                    m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    from app.models.entities import AuditEvent
+
+    stmt = select(AuditEvent).where(AuditEvent.tenant_id == m.tenant_id)
+    if order_id:
+        stmt = stmt.where(AuditEvent.order_id == order_id)
+    rows = db.scalars(stmt.order_by(AuditEvent.created_at.desc()).limit(limit)).all()
+    return {"items": [{"id": e.id, "type": e.type, "order_id": e.order_id, "cart_id": e.cart_id, "scenario_id": e.scenario_id,
+                       "source": e.source, "detail": e.detail, "at": e.created_at.isoformat()} for e in rows]}
+
+
+@router.post("/merchant/assumptions", responses=ERR, tags=["merchant"])
+def patch_assumptions(body: S.AssumptionsPatch, m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+    out = ful.patch_assumptions(db, m.tenant_id, body.model_dump(exclude_unset=True))
+    svc._commit(db)
+    return {"assumptions": out}
+
+
 # ------------------------------------------------------------------ merchant
 @router.get("/merchant/metrics", response_model=S.Metrics, responses=ERR, tags=["merchant"])
 def merchant_metrics(days: int | None = Query(default=None, ge=1, le=365), m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
@@ -287,9 +396,11 @@ def patch_catalog(body: S.CatalogPatch, m: MerchantCtx = Depends(merchant), db: 
 
 
 @router.get("/merchant/orders", responses=ERR, tags=["merchant"])
-def merchant_orders(limit: int = Query(default=100, ge=1, le=500), offset: int = Query(default=0, ge=0),
-                    m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
+def merchant_orders(fulfillment_status: str | None = None, limit: int = Query(default=100, ge=1, le=500),
+                    offset: int = Query(default=0, ge=0), m: MerchantCtx = Depends(merchant), db: Session = Depends(get_db)):
     stmt = select(Order).where(Order.tenant_id == m.tenant_id)
+    if fulfillment_status:
+        stmt = stmt.where(Order.fulfillment_status == fulfillment_status)
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     rows = db.scalars(stmt.order_by(Order.created_at.desc()).limit(limit).offset(offset)).all()
     return {"items": [ser.order(db, o) for o in rows], "total": total, "limit": limit, "offset": offset}

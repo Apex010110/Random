@@ -124,8 +124,20 @@ class _Order {
   final String? discountCode;
   final List<Map<String, dynamic>> lines;
   final DateTime createdAt;
+  // Green Logistics fulfillment lifecycle (see docs/green_logistics.md / FulfillmentEngine below).
+  String fulfillmentStatus = 'ready_to_dispatch';
+  String? deliveryZone, addressRedacted, scenarioId;
+  bool sizeQuestionResolved = false, codPredispatchConfirmed = false, hadFailedAttempt = false, everDelivered = false,
+      wasHeld = false, deliveryConsolidationSelected = false;
   _Order(this.id, this.cartId, this.idem, this.payment, this.codConfirmed, this.city, this.subtotal, this.discount, this.shipping, this.total,
       this.discountCode, this.viaLink, this.lines, this.createdAt);
+}
+
+class _Scenario {
+  final String id;
+  String name;
+  Map<String, dynamic> assumptions;
+  _Scenario(this.id, this.name, this.assumptions);
 }
 
 class _Attribution {
@@ -137,10 +149,11 @@ class _Attribution {
 
 class _Audit {
   final String type;
-  final String? cartId;
+  final String? cartId, orderId, scenarioId;
+  final String source = 'simulated'; // no "actual" source exists yet in this demo
   final Map<String, dynamic> detail;
   final DateTime at;
-  _Audit(this.type, this.cartId, this.detail, this.at);
+  _Audit(this.type, this.cartId, this.detail, this.at, {this.orderId, this.scenarioId});
 }
 
 class DemoEngine {
@@ -172,6 +185,8 @@ class DemoEngine {
   final List<_Audit> _audit = [];
   final Set<String> _idem = {};
   late List<Map<String, String>> _integrations;
+  final Map<String, _Scenario> _scenarios = {};
+  late String liveScenarioId;
 
   int version = 0;
   final _changes = StreamController<int>.broadcast();
@@ -204,13 +219,20 @@ class DemoEngine {
     settings = Map<String, dynamic>.from(seed['settings']);
     policy = jsonDecode(jsonEncode(seed['policy'])) as Map<String, dynamic>;
     policyVersion = 1;
-    for (final c in [_products, _shoppers, _carts, _convs, _discounts, _orders]) {
+    for (final c in [_products, _shoppers, _carts, _convs, _discounts, _orders, _scenarios]) {
       c.clear();
     }
     for (final l in [_consents, _attempts, _attributions, _audit]) {
       l.clear();
     }
     _idem.clear();
+    liveScenarioId = '$tenantId:live';
+    _scenarios[liveScenarioId] = _Scenario(liveScenarioId, 'Live demo', {
+      'assumed_failure_probability_without_intervention': null,
+      'assumed_km_per_avoided_attempt': null,
+      'assumed_kgco2e_per_km': null,
+      'assumed_packaging_units_per_repack_event': null,
+    });
     for (final p in seed['products'] as List) {
       _products[p['id']] = _Product(p['id'], p['name'], p['category'], p['description'], p['fit_notes'], p['price_pkr'], p['cod_eligible'],
           p['image_key'], p['color_hex'], [
@@ -237,8 +259,8 @@ class DemoEngine {
     if (notify) _bump();
   }
 
-  void _log(String type, [String? cartId, Map<String, dynamic> detail = const {}]) {
-    _audit.add(_Audit(type, cartId, _redact(detail), now()));
+  void _log(String type, [String? cartId, Map<String, dynamic> detail = const {}, String? orderId, String? scenarioId]) {
+    _audit.add(_Audit(type, cartId, _redact(detail), now(), orderId: orderId, scenarioId: scenarioId));
   }
 
   bool _logOnce(String key, String type, [String? cartId, Map<String, dynamic> detail = const {}]) {
@@ -374,6 +396,10 @@ class DemoEngine {
         'subtotal_pkr': o.subtotal, 'discount_pkr': o.discount, 'shipping_pkr': o.shipping, 'total_pkr': o.total, 'discount_code': o.discountCode,
         'via_recovery_link': o.viaLink, 'lines': o.lines, 'created_at': o.createdAt.toIso8601String(),
         'attributed': _attributions.any((a) => a.orderId == o.id),
+        'fulfillment_status': o.fulfillmentStatus, 'delivery_zone': o.deliveryZone, 'address_redacted': o.addressRedacted,
+        'size_question_resolved': o.sizeQuestionResolved, 'cod_predispatch_confirmed': o.codPredispatchConfirmed,
+        'had_failed_attempt': o.hadFailedAttempt, 'ever_delivered': o.everDelivered, 'was_held': o.wasHeld,
+        'delivery_consolidation_selected': o.deliveryConsolidationSelected, 'scenario_id': o.scenarioId,
       };
 
   // ------------------------------------------------------------- public API (mirrors HTTP routes)
@@ -900,6 +926,7 @@ class DemoEngine {
       cart.status = 'ordered';
     }
     _log('order_placed', cart.id, {'order': order.id, 'total': order.total, 'attributed': cart.status == 'recovered'});
+    _initFulfillment(order, cart);
     _bump();
     return _orderJson(order);
   }
@@ -910,6 +937,169 @@ class DemoEngine {
     return _orderJson(o);
   }
 
+  // ------------------------------------------------------------- Green Logistics fulfillment state machine
+  // pending_confirmation -> ready_to_dispatch | hold | cancelled
+  // hold -> ready_to_dispatch | cancelled
+  // ready_to_dispatch -> dispatched | hold | cancelled
+  // dispatched -> delivered | failed_attempt
+  // failed_attempt -> ready_to_dispatch | returned | cancelled
+  // delivered -> returned
+  static const _fulAllowed = {
+    'pending_confirmation': {'ready_to_dispatch', 'hold', 'cancelled'},
+    'hold': {'ready_to_dispatch', 'cancelled'},
+    'ready_to_dispatch': {'dispatched', 'hold', 'cancelled'},
+    'dispatched': {'delivered', 'failed_attempt'},
+    'failed_attempt': {'ready_to_dispatch', 'returned', 'cancelled'},
+    'delivered': {'returned'},
+    'returned': <String>{},
+    'cancelled': <String>{},
+  };
+
+  _Order _fulMove(_Order o, String target, String type, [Map<String, dynamic> detail = const {}]) {
+    if (!(_fulAllowed[o.fulfillmentStatus] ?? const <String>{}).contains(target)) {
+      _err(409, 'illegal_transition', 'Cannot move order from ${o.fulfillmentStatus} to $target');
+    }
+    o.fulfillmentStatus = target;
+    _log(type, null, detail, o.id, o.scenarioId);
+    return o;
+  }
+
+  bool _sizeQuestionResolved(String cartId) {
+    final conv = _convs[cartId];
+    if (conv == null) return false;
+    return conv.messages.any((m) => m.role == 'ai' && (m.intent == 'size' || m.intent == 'stock'));
+  }
+
+  bool _requiresPredispatchConfirmation(_Order o) =>
+      o.payment == 'cod' && (settings['cod_predispatch_confirmation_required'] ?? true) == true;
+
+  void _initFulfillment(_Order order, _Cart cart) {
+    order.scenarioId = liveScenarioId;
+    order.deliveryZone = order.city;
+    order.sizeQuestionResolved = _sizeQuestionResolved(cart.id);
+    if (_requiresPredispatchConfirmation(order)) {
+      order.fulfillmentStatus = 'pending_confirmation';
+      final channel = _activeConsent(cart.shopperId) != null ? 'whatsapp_sim' : 'onsite';
+      _log('cod_confirmation_requested', null, {'channel': channel}, order.id, order.scenarioId);
+    } else {
+      order.fulfillmentStatus = 'ready_to_dispatch';
+      _log('fulfillment_ready', null, const {}, order.id, order.scenarioId);
+    }
+  }
+
+  _Order _order(String orderId) => _orders[orderId] ?? _err(404, 'order_not_found', 'Order not found');
+
+  Map<String, dynamic> confirmCod(String orderId, bool confirmed, {bool deliveryZoneOk = true, bool availabilityOk = true}) {
+    final o = _order(orderId);
+    if (o.fulfillmentStatus != 'pending_confirmation') {
+      _err(409, 'illegal_transition', 'Order is ${o.fulfillmentStatus}; no confirmation is pending');
+    }
+    final ok = confirmed && deliveryZoneOk && availabilityOk;
+    if (ok) {
+      o.codPredispatchConfirmed = true;
+      _fulMove(o, 'ready_to_dispatch', 'cod_confirmed', {'delivery_zone_ok': deliveryZoneOk, 'availability_ok': availabilityOk});
+    } else {
+      final policy = settings['cod_rejection_policy'] ?? 'hold';
+      final reason = !confirmed ? 'rejected' : (!deliveryZoneOk ? 'delivery_zone_not_ok' : 'not_available');
+      if (policy == 'cancel') {
+        _fulMove(o, 'cancelled', 'cod_not_confirmed', {'reason': reason, 'policy': policy});
+      } else {
+        o.wasHeld = true;
+        _fulMove(o, 'hold', 'cod_not_confirmed', {'reason': reason, 'policy': policy});
+      }
+    }
+    _bump();
+    return _orderJson(o);
+  }
+
+  Map<String, dynamic> correctAddress(String orderId, String addressRedacted, String deliveryZone) {
+    final o = _order(orderId);
+    if (!{'pending_confirmation', 'hold'}.contains(o.fulfillmentStatus)) {
+      _err(409, 'illegal_transition', 'Order is ${o.fulfillmentStatus}; address can only be corrected while pending confirmation or on hold');
+    }
+    o.addressRedacted = addressRedacted;
+    o.deliveryZone = deliveryZone;
+    _log('address_corrected', null, {'delivery_zone': deliveryZone}, o.id, o.scenarioId);
+    _bump();
+    return _orderJson(o);
+  }
+
+  Map<String, dynamic> holdOrder(String orderId, String reason) {
+    final o = _order(orderId);
+    o.wasHeld = true;
+    _fulMove(o, 'hold', 'order_held', {'reason': reason});
+    _bump();
+    return _orderJson(o);
+  }
+
+  Map<String, dynamic> releaseOrder(String orderId) {
+    final o = _order(orderId);
+    _fulMove(o, 'ready_to_dispatch', 'order_released');
+    _bump();
+    return _orderJson(o);
+  }
+
+  Map<String, dynamic> dispatchOrder(String orderId) {
+    final o = _order(orderId);
+    _fulMove(o, 'dispatched', 'dispatch_authorized');
+    _bump();
+    return _orderJson(o);
+  }
+
+  Map<String, dynamic> retryDispatchOrder(String orderId) {
+    final o = _order(orderId);
+    _fulMove(o, 'ready_to_dispatch', 'retry_scheduled');
+    _bump();
+    return _orderJson(o);
+  }
+
+  Map<String, dynamic> markDelivered(String orderId) {
+    final o = _order(orderId);
+    o.everDelivered = true;
+    _fulMove(o, 'delivered', 'order_delivered');
+    _bump();
+    return _orderJson(o);
+  }
+
+  Map<String, dynamic> markFailedAttempt(String orderId, String reason) {
+    final o = _order(orderId);
+    o.hadFailedAttempt = true;
+    _fulMove(o, 'failed_attempt', 'delivery_attempt_failed', {'reason': reason});
+    _bump();
+    return _orderJson(o);
+  }
+
+  Map<String, dynamic> markReturned(String orderId, String reason) {
+    final o = _order(orderId);
+    _fulMove(o, 'returned', 'order_returned', {'reason': reason});
+    _bump();
+    return _orderJson(o);
+  }
+
+  Map<String, dynamic> cancelOrder(String orderId, String reason) {
+    final o = _order(orderId);
+    _fulMove(o, 'cancelled', 'order_cancelled', {'reason': reason});
+    _bump();
+    return _orderJson(o);
+  }
+
+  Map<String, dynamic> patchAssumptions(Map<String, dynamic> patch) {
+    final s = _scenarios[liveScenarioId]!;
+    s.assumptions = {...s.assumptions, ...patch};
+    _log('assumptions_updated', null, {'keys': patch.keys.toList()..sort()}, null, s.id);
+    _bump();
+    return {'assumptions': s.assumptions};
+  }
+
+  List<Map<String, dynamic>> merchantEvents({String? orderId, int limit = 100}) {
+    final rows = _audit.where((e) => orderId == null || e.orderId == orderId).toList().reversed.take(limit);
+    return [
+      for (final e in rows)
+        {'id': '-', 'type': e.type, 'order_id': e.orderId, 'cart_id': e.cartId, 'scenario_id': e.scenarioId, 'source': e.source,
+          'detail': e.detail, 'at': e.at.toIso8601String()}
+    ];
+  }
+
   // ------------------------------------------------------------- merchant
   List<Map<String, dynamic>> merchantCarts() {
     final list = _carts.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -917,7 +1107,8 @@ class DemoEngine {
   }
 
   List<Map<String, dynamic>> merchantConversations() => [for (final id in _convs.keys) _convJson(id)];
-  List<Map<String, dynamic>> merchantOrders() => [for (final o in _orders.values) _orderJson(o)];
+  List<Map<String, dynamic>> merchantOrders({String? fulfillmentStatus}) =>
+      [for (final o in _orders.values) if (fulfillmentStatus == null || o.fulfillmentStatus == fulfillmentStatus) _orderJson(o)];
   Map<String, bool> optedInByShopper() => {for (final id in _shoppers.keys) id: _activeConsent(id) != null};
 
   Map<String, dynamic> getSettings() => {'tenant_id': tenantId, 'name': storeName, 'is_demo': true, 'settings': settings};
@@ -1086,7 +1277,78 @@ class DemoEngine {
             'Sum of completed order totals placed within the attribution window after a recovery contact; excludes canceled/refunded',
         'incremental_lift': 'Treatment minus holdout recovery rate. Needs a randomized holdout with at least 30 carts per arm',
       },
+      'green': _computeGreen(),
       'recent_events': [for (final e in recent) {'type': e.type, 'cart_id': e.cartId, 'at': e.at.toIso8601String(), 'detail': e.detail}],
+    };
+  }
+
+  // ------------------------------------------------------------- Green Logistics metrics (port of services/metrics.py:compute_green)
+  static const greenDefinitions = {
+    'cod_confirmation_rate': 'Confirmed COD orders / COD orders requiring pre-dispatch confirmation',
+    'failed_delivery_rate': 'Orders with a failed first attempt / dispatched orders',
+    'return_rate': 'Returned orders / orders ever delivered',
+    'consolidation_rate': 'Not implemented in this demo (P1): eligible orders selecting consolidation / eligible orders offered it',
+    'estimated_avoided_attempts':
+        'eligible_orders_held_or_cancelled x assumed_failure_probability_without_intervention (illustrative; no estimate until an assumption is set)',
+    'illustrative_co2e_kg':
+        'estimated_avoided_attempts x assumed_km_per_avoided_attempt x assumed_kgco2e_per_km (assumption-driven, not a measured saving)',
+    'illustrative_packaging_units':
+        'verified_avoided_repack_events x assumed_packaging_units_per_repack_event (0 until a real avoided-repack signal exists; never inferred from unshipped orders)',
+  };
+
+  Map<String, dynamic> _computeGreen() {
+    final orders = _orders.values.toList();
+    final scen = _scenarios[liveScenarioId]!;
+    final assumptions = scen.assumptions;
+
+    final cod = [for (final o in orders) if (o.payment == 'cod') o];
+    final confirmed = [for (final o in cod) if (o.codPredispatchConfirmed) o];
+    final dispatchedEver = [for (final o in orders) if (const {'dispatched', 'delivered', 'failed_attempt', 'returned'}.contains(o.fulfillmentStatus)) o];
+    final failed = [for (final o in orders) if (o.hadFailedAttempt) o];
+    final everDelivered = [for (final o in orders) if (o.everDelivered) o];
+    final returned = [for (final o in orders) if (o.fulfillmentStatus == 'returned') o];
+    final heldOrCancelled = [for (final o in orders) if (o.wasHeld || o.fulfillmentStatus == 'cancelled') o];
+    final consolidated = [for (final o in orders) if (o.deliveryConsolidationSelected) o];
+    final sizeResolved = [for (final o in orders) if (o.sizeQuestionResolved) o];
+
+    final p = (assumptions['assumed_failure_probability_without_intervention'] as num?)?.toDouble();
+    double? estimatedAvoidedAttempts;
+    Map<String, dynamic>? sensitivity;
+    if (p != null) {
+      estimatedAvoidedAttempts = heldOrCancelled.length * p;
+      sensitivity = {'low': heldOrCancelled.length * (p * 0.5).clamp(0, 1), 'high': heldOrCancelled.length * (p * 1.5).clamp(0, 1)};
+    }
+    final km = (assumptions['assumed_km_per_avoided_attempt'] as num?)?.toDouble();
+    final co2PerKm = (assumptions['assumed_kgco2e_per_km'] as num?)?.toDouble();
+    final illustrativeCo2eKg = (estimatedAvoidedAttempts != null && km != null && km > 0 && co2PerKm != null && co2PerKm > 0)
+        ? estimatedAvoidedAttempts * km * co2PerKm
+        : null;
+    const verifiedAvoidedRepackEvents = 0; // no such signal exists yet in this demo - never inferred from unshipped orders.
+    final packUnits = (assumptions['assumed_packaging_units_per_repack_event'] as num?)?.toDouble();
+    final illustrativePackagingUnits = (packUnits != null && packUnits > 0) ? verifiedAvoidedRepackEvents * packUnits : null;
+
+    return {
+      'scenario_id': scen.id,
+      'assumptions': assumptions,
+      'counts': {
+        'cod_orders': cod.length, 'cod_confirmed': confirmed.length, 'dispatched': dispatchedEver.length, 'failed_attempt': failed.length,
+        'ever_delivered': everDelivered.length, 'returned': returned.length, 'held_or_cancelled': heldOrCancelled.length,
+        'size_questions_resolved': sizeResolved.length, 'consolidated': consolidated.length,
+      },
+      'rates': {
+        'cod_confirmation_rate': _rate(confirmed.length, cod.length),
+        'failed_delivery_rate': _rate(failed.length, dispatchedEver.length),
+        'return_rate': _rate(returned.length, everDelivered.length),
+        'consolidation_rate': {'numerator': 0, 'denominator': 0, 'value': null, 'label': 'Not implemented (P1)'},
+      },
+      'estimates': {
+        'estimated_avoided_attempts': estimatedAvoidedAttempts,
+        'estimated_avoided_attempts_sensitivity': sensitivity,
+        'illustrative_co2e_kg': illustrativeCo2eKg,
+        'illustrative_packaging_units': illustrativePackagingUnits,
+      },
+      'definitions': greenDefinitions,
+      'banner': 'Simulation only — no verified environmental impact or pilot outcomes.',
     };
   }
 }
